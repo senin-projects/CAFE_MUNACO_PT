@@ -10,6 +10,7 @@ import inventoryRoutes from './routes/inventory.js';
 import userRoutes from './routes/users.js';
 import dashboardRoutes from './routes/dashboard.js';
 import reportRoutes from './routes/reports.js';
+import notificationRoutes from './routes/notifications.js';
 
 const app = express();
 app.use(cors());
@@ -22,6 +23,7 @@ app.use('/api/inventory', requireAuth, inventoryRoutes);
 app.use('/api/users', requireAuth, userRoutes);
 app.use('/api/dashboard', requireAuth, dashboardRoutes);
 app.use('/api/reports', requireAuth, reportRoutes);
+app.use('/api/notifications', requireAuth, notificationRoutes);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found.' }));
 

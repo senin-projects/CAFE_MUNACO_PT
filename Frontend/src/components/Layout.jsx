@@ -4,6 +4,7 @@ import { useAuth } from '../auth.jsx'
 import { NAV } from '../nav.js'
 import { ROLE_LABEL } from '../utils.js'
 import Icon from './Icon.jsx'
+import NotificationBell from './NotificationBell.jsx'
 
 export default function Layout() {
   const { user, logout } = useAuth()
@@ -41,6 +42,7 @@ export default function Layout() {
       </aside>
 
       <main className="content">
+        <div className="topbar"><NotificationBell /></div>
         <Outlet />
       </main>
     </div>

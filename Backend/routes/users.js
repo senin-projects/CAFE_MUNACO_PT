@@ -64,8 +64,9 @@ router.put(
     if (Number(req.params.id) === req.user.id && role !== 'owner') {
       throw httpError(400, 'You cannot change your own role.');
     }
-    const [result] = await pool.query('UPDATE users SET full_name = ?, role = ? WHERE id = ?', [full_name, role, req.params.id]);
-    if (!result.affectedRows) throw httpError(404, 'Account not found.');
+    const [[existing]] = await pool.query('SELECT id FROM users WHERE id = ?', [req.params.id]);
+    if (!existing) throw httpError(404, 'Account not found.');
+    await pool.query('UPDATE users SET full_name = ?, role = ? WHERE id = ?', [full_name, role, req.params.id]);
     await logActivity(req.user.id, 'Account edited', `${full_name} is now ${role}`);
     res.json({ ok: true });
   })

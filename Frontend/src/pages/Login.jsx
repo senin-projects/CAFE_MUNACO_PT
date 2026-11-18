@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../auth.jsx'
 import { ErrorBox } from '../components/ui.jsx'
-import Icon from '../components/Icon.jsx'
 
 export default function Login() {
   const { login } = useAuth()
@@ -25,8 +24,7 @@ export default function Login() {
   return (
     <div className="login">
       <div className="login-art">
-        <Icon name="cup" size={40} />
-        <h1>Cafe Munaco</h1>
+        <img className="login-logo" src="/assets/cafe_munaco_logo.png" alt="Cafe Munaco — Refined Brews, Elevated Spirits" />
         <p>Madalunot, Calaca, Batangas</p>
       </div>
 

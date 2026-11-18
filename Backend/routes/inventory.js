@@ -153,13 +153,14 @@ router.put(
     if (isBlank(b.unit)) throw httpError(400, 'Choose a unit.');
     const reorder_level = num(b.reorder_level, 'Reorder level');
 
+    const [[existing]] = await pool.query('SELECT id FROM inventory_items WHERE id = ?', [req.params.id]);
+    if (!existing) throw httpError(404, 'Item not found.');
     const [dup] = await pool.query('SELECT id FROM inventory_items WHERE name = ? AND id <> ?', [name, req.params.id]);
     if (dup.length) throw httpError(409, `"${name}" is already in the inventory list.`);
-    const [result] = await pool.query(
+    await pool.query(
       'UPDATE inventory_items SET name = ?, category = ?, unit = ?, reorder_level = ?, is_fresh = ? WHERE id = ?',
       [name, b.category, String(b.unit).trim(), reorder_level, b.is_fresh ? 1 : 0, req.params.id]
     );
-    if (!result.affectedRows) throw httpError(404, 'Item not found.');
     await logActivity(req.user.id, 'Item edited', `${name} details updated`);
     res.json({ ok: true });
   })

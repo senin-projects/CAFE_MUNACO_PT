@@ -72,7 +72,7 @@ router.get(
         today_orders: await one("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = CURDATE() AND status <> 'cancelled'"),
         active_orders: await one("SELECT COUNT(*) FROM orders WHERE status IN ('sent','preparing','ready')"),
         low_stock: await one(`SELECT COUNT(*) FROM inventory_items WHERE ${LOW}`),
-        active_staff: await one('SELECT COUNT(*) FROM users WHERE is_active = 1'),
+        active_staff: await one("SELECT COUNT(*) FROM users WHERE is_active = 1 AND role <> 'owner'"),
       },
       order_status: await many("SELECT status, COUNT(*) AS count FROM orders WHERE DATE(created_at) = CURDATE() GROUP BY status"),
       low_items: await many(`SELECT id, name, unit, quantity, reorder_level FROM inventory_items WHERE ${LOW} ORDER BY quantity / NULLIF(reorder_level, 0) LIMIT 5`),

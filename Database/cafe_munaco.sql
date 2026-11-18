@@ -6,7 +6,7 @@ CREATE DATABASE IF NOT EXISTS cafe_munaco CHARACTER SET utf8mb4 COLLATE utf8mb4_
 USE cafe_munaco;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS activity_log, stock_movements, inventory_items, order_items, orders, menu_items, users;
+DROP TABLE IF EXISTS notification_reads, activity_log, stock_movements, inventory_items, order_items, orders, menu_items, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ---------------------------------------------------------------- users
@@ -18,6 +18,14 @@ CREATE TABLE users (
   role          ENUM('cashier','kitchen','inventory','owner') NOT NULL,
   is_active     TINYINT(1)   NOT NULL DEFAULT 1,
   created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE notification_reads (
+  user_id          INT          NOT NULL,
+  notification_key VARCHAR(100) NOT NULL,
+  read_at          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, notification_key),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- ---------------------------------------------------------------- menu
