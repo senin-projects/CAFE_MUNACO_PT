@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useFetch } from '../../hooks.js'
 import { qs } from '../../services/api.js'
 import { Empty, ErrorBox, Loading, PageHeader, StatusBadge } from '../../components/ui.jsx'
@@ -7,6 +7,7 @@ import { ORDER_TYPES, dateTime } from '../../utils.js'
 
 // "Order Details" in the cashier menu: find an order, then open its full details.
 export default function OrderLookup() {
+  const navigate = useNavigate()
   const [q, setQ] = useState('')
   const { data, error, loading } = useFetch(`/orders${qs({ q })}`)
 
@@ -20,7 +21,20 @@ export default function OrderLookup() {
           {data?.length === 0 ? <Empty>No orders match “{q}”.</Empty> : (
             <ul className="rows">
               {data?.slice(0, 30).map((o) => (
-                <li key={o.id}>
+                <li
+                  key={o.id}
+                  className="order-row"
+                  role="link"
+                  tabIndex={0}
+                  aria-label={`Open order ${o.order_no}`}
+                  onClick={() => navigate(`/orders/${o.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault()
+                      navigate(`/orders/${o.id}`)
+                    }
+                  }}
+                >
                   <Link to={`/orders/${o.id}`}><strong>{o.order_no}</strong> {o.customer_name}</Link>
                   <span><StatusBadge status={o.status} /> <span className="muted">{ORDER_TYPES[o.order_type]} · {dateTime(o.created_at)}</span></span>
                 </li>

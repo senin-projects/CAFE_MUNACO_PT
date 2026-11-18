@@ -17,6 +17,7 @@ import LowStock from './modules/inventory/LowStock.jsx'
 import StockHistory from './modules/inventory/StockHistory.jsx'
 import Reports from './modules/owner/Reports.jsx'
 import Users from './modules/owner/Users.jsx'
+import MenuManagement from './modules/owner/MenuManagement.jsx'
 
 // Only lets the listed roles open a page (the server checks again for every request)
 function Only({ roles, children }) {
@@ -69,6 +70,7 @@ export default function App() {
         <Route path="/inventory-overview" element={<Only roles={['owner']}><InventoryList readOnly /></Only>} />
         <Route path="/reports" element={<Only roles={['owner']}><Reports /></Only>} />
         <Route path="/users" element={<Only roles={['owner']}><Users /></Only>} />
+        <Route path="/menu-management" element={<Only roles={['owner']}><MenuManagement /></Only>} />
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>

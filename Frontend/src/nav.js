@@ -25,6 +25,7 @@ export const NAV = {
   owner: [
     { label: 'Dashboard', to: '/dashboard', icon: 'grid' },
     { label: 'Orders', to: '/orders', icon: 'list' },
+    { label: 'Menu Management', to: '/menu-management', icon: 'list' },
     { label: 'Inventory Overview', to: '/inventory-overview', icon: 'box' },
     { label: 'Stock History', to: '/stock-history', icon: 'archive' },
     { label: 'Business Reports', to: '/reports', icon: 'chart' },

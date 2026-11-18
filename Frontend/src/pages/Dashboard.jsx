@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth.jsx'
 import { useFetch } from '../hooks.js'
 import { Empty, ErrorBox, Loading, PageHeader, StatCard, StatusBadge } from '../components/ui.jsx'
@@ -23,7 +23,23 @@ export default function Dashboard() {
 }
 
 function Body({ role, d }) {
+  const navigate = useNavigate()
   const s = d.stats
+  const orderRowProps = (id, orderNo) => ({
+    className: 'order-row',
+    role: 'link',
+    tabIndex: 0,
+    'aria-label': `Open order ${orderNo}`,
+    onClick: (e) => {
+      if (!e.target.closest('a, button')) navigate(`/orders/${id}`)
+    },
+    onKeyDown: (e) => {
+      if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault()
+        navigate(`/orders/${id}`)
+      }
+    },
+  })
 
   if (role === 'cashier')
     return (
@@ -40,7 +56,7 @@ function Body({ role, d }) {
             {d.ready_orders.length === 0 ? <Empty>Nothing is ready yet.</Empty> : (
               <ul className="rows">
                 {d.ready_orders.map((o) => (
-                  <li key={o.id}>
+                  <li key={o.id} {...orderRowProps(o.id, o.order_no)}>
                     <Link to={`/orders/${o.id}`}><strong>{o.order_no}</strong> {o.customer_name}</Link>
                     <span className="muted">{o.table_no || ORDER_TYPES[o.order_type]} · ready {timeAgo(o.ready_at)}</span>
                   </li>
@@ -52,7 +68,7 @@ function Body({ role, d }) {
             <h2>Latest orders</h2>
             <ul className="rows">
               {d.recent_orders.map((o) => (
-                <li key={o.id}>
+                <li key={o.id} {...orderRowProps(o.id, o.order_no)}>
                   <Link to={`/orders/${o.id}`}><strong>{o.order_no}</strong> {o.customer_name}</Link>
                   <span><StatusBadge status={o.status} /> <span className="muted">{peso(o.total)}</span></span>
                 </li>
@@ -77,8 +93,8 @@ function Body({ role, d }) {
           {d.waiting.length === 0 ? <Empty>No orders are waiting.</Empty> : (
             <ul className="rows">
               {d.waiting.map((o) => (
-                <li key={o.id}>
-                  <Link to="/kitchen/incoming"><strong>{o.order_no}</strong> {o.customer_name}</Link>
+                <li key={o.id} {...orderRowProps(o.id, o.order_no)}>
+                  <Link to={`/orders/${o.id}`}><strong>{o.order_no}</strong> {o.customer_name}</Link>
                   <span className="muted">{o.table_no || ORDER_TYPES[o.order_type]} · sent {timeAgo(o.sent_at)}{o.special_requests ? ' · has special request' : ''}</span>
                 </li>
               ))}

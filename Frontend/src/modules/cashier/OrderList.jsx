@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth.jsx'
 import { useFetch } from '../../hooks.js'
 import { qs } from '../../services/api.js'
@@ -8,6 +8,7 @@ import { ORDER_TYPES, STATUS_LABEL, dateTime, peso } from '../../utils.js'
 
 // Used for "Order List" (cashier) and "Orders" (owner)
 export default function OrderList() {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('')
@@ -46,7 +47,19 @@ export default function OrderList() {
             </thead>
             <tbody>
               {data?.map((o) => (
-                <tr key={o.id}>
+                <tr
+                  key={o.id}
+                  className="order-row"
+                  tabIndex={0}
+                  aria-label={`Open order ${o.order_no}`}
+                  onClick={() => navigate(`/orders/${o.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault()
+                      navigate(`/orders/${o.id}`)
+                    }
+                  }}
+                >
                   <td><strong>{o.order_no}</strong></td>
                   <td>{o.customer_name}{o.table_no && <span className="muted"> · {o.table_no}</span>}</td>
                   <td>{ORDER_TYPES[o.order_type]}</td>

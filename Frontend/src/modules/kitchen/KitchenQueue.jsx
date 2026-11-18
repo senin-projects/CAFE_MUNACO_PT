@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../../services/api.js'
 import { useFetch } from '../../hooks.js'
 import { Empty, ErrorBox, Loading, PageHeader } from '../../components/ui.jsx'
@@ -7,6 +7,7 @@ import { ORDER_TYPES, dateTime, timeAgo } from '../../utils.js'
 
 // One screen for Incoming / Preparing / Ready / History. Only `status` changes.
 export default function KitchenQueue({ status, title, empty, history }) {
+  const navigate = useNavigate()
   const { data, error, loading, reload } = useFetch(`/orders?status=${status}&items=1&sort=${history ? 'newest' : 'oldest'}`, { poll: 10000 })
   const [actionError, setActionError] = useState('')
 
@@ -30,7 +31,22 @@ export default function KitchenQueue({ status, title, empty, history }) {
       {loading && !data ? <Loading /> : data?.length === 0 ? <Empty>{empty}</Empty> : (
         <div className="tickets">
           {data?.map((o) => (
-            <article className={`ticket ${o.special_requests ? 'has-request' : ''}`} key={o.id}>
+            <article
+              className={`ticket ticket-clickable ${o.special_requests ? 'has-request' : ''}`}
+              key={o.id}
+              role="link"
+              tabIndex={0}
+              aria-label={`Open order ${o.order_no}`}
+              onClick={(e) => {
+                if (!e.target.closest('button, a')) navigate(`/orders/${o.id}`)
+              }}
+              onKeyDown={(e) => {
+                if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault()
+                  navigate(`/orders/${o.id}`)
+                }
+              }}
+            >
               <header>
                 <div>
                   <Link to={`/orders/${o.id}`}><strong>{o.order_no}</strong></Link>

@@ -51,6 +51,9 @@
 
 .rows li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #eef2f1; flex-wrap: wrap; }
 .rows li:last-child { border-bottom: 0; }
+.order-row { cursor: pointer; }
+.order-row:hover { background: #f4faf9; }
+.order-row:focus-visible { outline: 3px solid #2b8f9a; outline-offset: -2px; }
 .rows a:hover { text-decoration: underline; }
 
 /* ---------- buttons, forms ---------- */
@@ -147,6 +150,8 @@ tr.inactive td { color: var(--muted); }
 /* ---------- kitchen tickets ---------- */
 .tickets { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
 .ticket { background: #fff; border: 1px solid var(--line); border-top: 5px solid var(--harbor-2); border-radius: 4px 4px 10px 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.ticket-clickable { cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+.ticket-clickable:hover, .ticket-clickable:focus-visible { border-color: var(--harbor-2); box-shadow: 0 3px 12px #0f3b4020; }
 .ticket.has-request { border-top-color: #d9b61f; }
 .ticket header { display: flex; justify-content: space-between; gap: 10px; }
 .ticket header strong { font-family: var(--font-head); font-size: 1.15rem; }

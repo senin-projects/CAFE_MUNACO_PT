@@ -15,6 +15,7 @@ export default function NewOrder() {
   const [form, setForm] = useState(BLANK)
   const [cart, setCart] = useState({}) // menu item id -> { qty, notes }
   const [savedItems, setSavedItems] = useState([])
+  const [paymentMethod, setPaymentMethod] = useState('cash')
   const [category, setCategory] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -74,19 +75,29 @@ export default function NewOrder() {
     return next
   })
 
-  async function submit(continueToPayment) {
+  async function submit(payAndSend) {
     setError('')
     setBusy(true)
     try {
       const body = {
         ...form,
-        send: false,
+        send: !id && payAndSend,
+        payment_method: paymentMethod,
         items: lines.map((m) => ({ menu_item_id: m.archived ? null : m.id, existing_item_id: m.existingItemId, quantity: cart[m.id].qty, notes: cart[m.id].notes })),
       }
       const res = id
         ? await api(`/orders/${id}`, { method: 'PUT', body })
         : await api('/orders', { method: 'POST', body })
-      navigate(continueToPayment ? `/orders/${res.id}` : '/orders')
+      if (id && payAndSend) {
+        try {
+          await api(`/orders/${res.id}/payment`, { method: 'POST', body: { method: paymentMethod } })
+          await api(`/orders/${res.id}/send`, { method: 'POST' })
+        } catch (e) {
+          navigate(`/orders/${res.id}`)
+          return
+        }
+      }
+      navigate(payAndSend ? `/orders/${res.id}` : '/orders')
     } catch (e) {
       setError(e.message)
       setBusy(false)
@@ -162,7 +173,10 @@ export default function NewOrder() {
             </ul>
           )}
           <div className="cart-total"><span>Total</span><strong>{peso(total)}</strong></div>
-          <button className="btn btn-primary wide" disabled={busy} onClick={() => submit(true)}>Continue to payment and sending</button>
+          <label>Payment method
+            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}><option value="cash">Cash</option><option value="card">Card</option><option value="e_wallet">E-wallet</option></select>
+          </label>
+          <button className="btn btn-primary wide" disabled={busy} onClick={() => submit(true)}>{id ? 'Save, mark paid & send' : 'Mark paid & send to kitchen'}</button>
           <button className="btn wide" disabled={busy} onClick={() => submit(false)}>Save draft</button>
         </aside>
       </div>

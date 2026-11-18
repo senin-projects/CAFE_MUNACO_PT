@@ -195,8 +195,12 @@ router.post(
   '/',
   requireRole('cashier'),
   wrap(async (req, res) => {
-    if (req.body?.send === true) throw httpError(409, 'Record payment before sending the order to the kitchen.');
     const { header, items, total } = await validateOrder(req.body || {});
+    const sendNow = req.body?.send === true;
+    const paymentMethod = String(req.body?.payment_method || '');
+    if (sendNow && !['cash', 'card', 'e_wallet'].includes(paymentMethod)) {
+      throw httpError(400, 'Choose a payment method before sending the order to the kitchen.');
+    }
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
@@ -205,8 +209,11 @@ router.post(
           ...header,
           order_no: `TMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           total,
-          status: 'pending',
-          sent_at: null,
+          status: sendNow ? 'sent' : 'pending',
+          sent_at: sendNow ? new Date() : null,
+          payment_status: sendNow ? 'paid' : 'unpaid',
+          payment_method: sendNow ? paymentMethod : null,
+          paid_at: sendNow ? new Date() : null,
           created_by: req.user.id,
         },
       ]);
@@ -214,7 +221,8 @@ router.post(
       const orderNo = `MUN-${String(id).padStart(5, '0')}`;
       await conn.query('UPDATE orders SET order_no = ? WHERE id = ?', [orderNo, id]);
       await writeItems(conn, id, items);
-      await logActivity(req.user.id, 'Order created', `${orderNo} for ${header.customer_name} saved as draft`, conn);
+      await logActivity(req.user.id, sendNow ? 'Payment recorded' : 'Order created', sendNow ? `${orderNo} paid by ${paymentMethod.replace('_', '-')}` : `${orderNo} for ${header.customer_name} saved as draft`, conn);
+      if (sendNow) await logActivity(req.user.id, 'Order sent', `${orderNo} sent to kitchen`, conn);
       await conn.commit();
       res.status(201).json({ id, order_no: orderNo });
     } catch (err) {
