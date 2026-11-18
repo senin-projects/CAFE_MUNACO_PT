@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../../services/api.js'
 import { useAuth } from '../../auth.jsx'
 import { useFetch } from '../../hooks.js'
-import { ErrorBox, Loading, PageHeader, StatusBadge } from '../../components/ui.jsx'
+import { ErrorBox, Loading, Modal, PageHeader, StatusBadge } from '../../components/ui.jsx'
 import { ORDER_TYPES, dateTime, peso, qty } from '../../utils.js'
 
 const STEPS = [
@@ -21,6 +21,10 @@ export default function OrderDetails() {
   const { data: o, error, loading, reload } = useFetch(`/orders/${id}`, { poll: 15000 })
   const [actionError, setActionError] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [cancelModal, setCancelModal] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
+  const [paymentResolution, setPaymentResolution] = useState('')
+  const [cancelBusy, setCancelBusy] = useState(false)
   const showPrices = user.role !== 'kitchen'
 
   async function run(path, options, after) {
@@ -33,6 +37,31 @@ export default function OrderDetails() {
     }
   }
   const setStatus = (status) => run(`/orders/${id}/status`, { method: 'PATCH', body: { status } })
+  const canOwnerCancel = user.role === 'owner' && ['pending', 'sent', 'preparing', 'ready'].includes(o?.status)
+
+  function openCancelModal() {
+    setCancelReason('')
+    setPaymentResolution(o.payment_status === 'paid' ? '' : 'not_applicable')
+    setCancelModal(true)
+  }
+
+  async function cancelAsOwner(e) {
+    e.preventDefault()
+    setActionError('')
+    setCancelBusy(true)
+    try {
+      await api(`/orders/${id}/cancel`, {
+        method: 'POST',
+        body: { reason: cancelReason, payment_resolution: paymentResolution },
+      })
+      setCancelModal(false)
+      reload()
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setCancelBusy(false)
+    }
+  }
   async function payAndSend() {
     setActionError('')
     try {
@@ -64,6 +93,7 @@ export default function OrderDetails() {
         </>}
         {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'paid' && <button className="btn btn-primary" onClick={() => run(`/orders/${id}/send`, { method: 'POST' })}>Send to kitchen</button>}
         {user.role === 'cashier' && o.status === 'ready' && <button className="btn btn-primary" onClick={() => setStatus('served')}>Mark as served</button>}
+        {canOwnerCancel && <button className="btn btn-danger" onClick={openCancelModal}>Cancel / void order</button>}
         {user.role !== 'kitchen' && <button className="btn" onClick={() => window.print()}>Print receipt</button>}
         {user.role === 'kitchen' && o.status === 'sent' && <button className="btn btn-primary" onClick={() => setStatus('preparing')}>Start preparing</button>}
         {user.role === 'kitchen' && o.status === 'preparing' && <button className="btn btn-primary" onClick={() => setStatus('ready')}>Mark as ready</button>}
@@ -77,6 +107,16 @@ export default function OrderDetails() {
 
       {o.special_requests && (
         <div className="request"><strong>Special requests</strong><p>{o.special_requests}</p></div>
+      )}
+      {o.status === 'cancelled' && (
+        <div className="request">
+          <strong>Cancellation details</strong>
+          <p>{o.cancellation?.reason || 'This order was cancelled before cancellation details were recorded.'}</p>
+          {o.cancellation && <p className="muted">Cancelled by {o.cancellation.cancelled_by_name} · {dateTime(o.cancellation.created_at)}</p>}
+          {o.payment_status === 'paid' && o.cancellation && (
+            <p>Payment outcome: {o.cancellation.payment_resolution === 'refunded' ? 'Refunded' : 'Not refunded'}</p>
+          )}
+        </div>
       )}
 
       <div className="grid-2">
@@ -134,6 +174,30 @@ export default function OrderDetails() {
         <strong>Total: {peso(o.total)}</strong><p>{o.payment_status === 'paid' ? `Paid by ${o.payment_method?.replace('_', '-')}` : 'Unpaid'}</p>
         {o.paid_at && <p>{dateTime(o.paid_at)}</p>}
       </section>}
+
+      {cancelModal && (
+        <Modal title="Cancel / void order" onClose={() => setCancelModal(false)}>
+          <form className="form" onSubmit={cancelAsOwner}>
+            <p className="muted">This will cancel the order and notify the kitchen if it was sent for preparation.</p>
+            <label>Reason for cancellation
+              <textarea rows="3" maxLength="500" required value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
+            </label>
+            {o.payment_status === 'paid' && (
+              <label>Payment outcome
+                <select required value={paymentResolution} onChange={(e) => setPaymentResolution(e.target.value)}>
+                  <option value="">Choose an outcome</option>
+                  <option value="refunded">Refunded to customer</option>
+                  <option value="not_refunded">Not refunded / settled separately</option>
+                </select>
+              </label>
+            )}
+            <div className="form-actions">
+              <button className="btn btn-danger" disabled={cancelBusy}>{cancelBusy ? 'Cancelling…' : 'Confirm cancellation'}</button>
+              <button type="button" className="btn" disabled={cancelBusy} onClick={() => setCancelModal(false)}>Keep order</button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </>
   )
 }

@@ -187,6 +187,12 @@ router.get(
       throw httpError(404, 'Order not found.');
     }
     order.items = (await loadItems([order.id])).get(order.id) || [];
+    const [[cancellation]] = await pool.query(
+      `SELECT c.reason, c.payment_resolution, c.previous_status, c.created_at, u.full_name AS cancelled_by_name
+       FROM order_cancellations c JOIN users u ON u.id = c.cancelled_by WHERE c.order_id = ?`,
+      [order.id]
+    );
+    order.cancellation = cancellation || null;
     res.json(stripPrices(order, req.user.role));
   })
 );
@@ -308,16 +314,60 @@ router.post(
   })
 );
 
-// ---------------------------------------------------------------- cancel (cashier, only before it is sent)
+// ---------------------------------------------------------------- cancel / void
 router.post(
   '/:id/cancel',
-  requireRole('cashier'),
+  requireRole('cashier', 'owner'),
   wrap(async (req, res) => {
-    const [result] = await pool.query("UPDATE orders SET status = 'cancelled' WHERE id = ? AND status = 'pending' AND payment_status = 'unpaid'", [req.params.id]);
-    if (!result.affectedRows) throw httpError(409, 'Only orders that are not yet sent can be cancelled.');
-    const [[order]] = await pool.query('SELECT order_no FROM orders WHERE id = ?', [req.params.id]);
-    await logActivity(req.user.id, 'Order cancelled', `${order.order_no} cancelled`);
-    res.json({ ok: true });
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [rows] = await conn.query(
+        'SELECT id, order_no, status, payment_status FROM orders WHERE id = ? FOR UPDATE',
+        [req.params.id]
+      );
+      const order = rows[0];
+      if (!order) throw httpError(404, 'Order not found.');
+      if (!['pending', 'sent', 'preparing', 'ready'].includes(order.status)) {
+        throw httpError(409, 'Served or already cancelled orders cannot be cancelled.');
+      }
+
+      const ownerApproved = req.user.role === 'owner';
+      const cashierDraft = req.user.role === 'cashier' && order.status === 'pending' && order.payment_status === 'unpaid';
+      if (!ownerApproved && !cashierDraft) {
+        throw httpError(403, 'Only an owner can cancel a paid or kitchen-sent order.');
+      }
+
+      const reason = ownerApproved ? String(req.body?.reason || '').trim() : 'Cancelled by cashier before payment.';
+      if (ownerApproved && !reason) throw httpError(400, 'Enter a reason for cancelling this order.');
+      if (reason.length > 500) throw httpError(400, 'The cancellation reason must be 500 characters or fewer.');
+
+      const paymentResolution = order.payment_status === 'paid'
+        ? String(req.body?.payment_resolution || '')
+        : 'not_applicable';
+      if (order.payment_status === 'paid' && !['refunded', 'not_refunded'].includes(paymentResolution)) {
+        throw httpError(400, 'Choose whether the customer was refunded.');
+      }
+
+      await conn.query("UPDATE orders SET status = 'cancelled' WHERE id = ?", [order.id]);
+      await conn.query(
+        'INSERT INTO order_cancellations (order_id, cancelled_by, previous_status, reason, payment_resolution) VALUES (?, ?, ?, ?, ?)',
+        [order.id, req.user.id, order.status, reason, paymentResolution]
+      );
+      await logActivity(
+        req.user.id,
+        ownerApproved ? 'Order voided' : 'Order cancelled',
+        `${order.order_no}: ${reason}${paymentResolution === 'refunded' ? ' (refunded)' : paymentResolution === 'not_refunded' ? ' (not refunded)' : ''}`,
+        conn
+      );
+      await conn.commit();
+      res.json({ ok: true, status: 'cancelled', payment_resolution: paymentResolution });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
   })
 );
 

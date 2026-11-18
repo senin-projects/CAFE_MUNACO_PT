@@ -6,7 +6,7 @@ CREATE DATABASE IF NOT EXISTS cafe_munaco CHARACTER SET utf8mb4 COLLATE utf8mb4_
 USE cafe_munaco;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS notification_reads, activity_log, stock_movements, inventory_items, order_items, orders, menu_items, users;
+DROP TABLE IF EXISTS order_cancellations, notification_reads, activity_log, stock_movements, inventory_items, order_items, orders, menu_items, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ---------------------------------------------------------------- users
@@ -64,6 +64,18 @@ CREATE TABLE orders (
   FOREIGN KEY (prepared_by) REFERENCES users(id),
   INDEX idx_status (status),
   INDEX idx_created (created_at)
+);
+
+CREATE TABLE order_cancellations (
+  id                 INT AUTO_INCREMENT PRIMARY KEY,
+  order_id           INT NOT NULL UNIQUE,
+  cancelled_by       INT NOT NULL,
+  previous_status    ENUM('pending','sent','preparing','ready') NOT NULL,
+  reason             VARCHAR(500) NOT NULL,
+  payment_resolution ENUM('not_applicable','refunded','not_refunded') NOT NULL,
+  created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  FOREIGN KEY (cancelled_by) REFERENCES users(id)
 );
 
 CREATE TABLE order_items (

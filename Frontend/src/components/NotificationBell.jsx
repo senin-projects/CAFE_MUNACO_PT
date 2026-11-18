@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFetch } from '../hooks.js'
 import { api } from '../services/api.js'
-import { dateTime } from '../utils.js'
+import { dateTime, formatNumber } from '../utils.js'
 import Icon from './Icon.jsx'
 
 export default function NotificationBell() {
@@ -55,7 +55,9 @@ export default function NotificationBell() {
               <li key={note.id}>
                 <button type="button" className={`notification-item ${note.is_read ? 'read' : 'unread'}`} onClick={() => openNotification(note)}>
                   <span className="notification-title">{note.title}</span>
-                  <span>{note.message}</span>
+                  <span>{note.kind === 'stock'
+                    ? `Stock is ${formatNumber(note.quantity)} ${note.unit}; reorder level is ${formatNumber(note.reorder_level)} ${note.unit}.`
+                    : note.message}</span>
                   {note.created_at && <time>{dateTime(note.created_at)}</time>}
                 </button>
               </li>

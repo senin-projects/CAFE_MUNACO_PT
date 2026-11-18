@@ -47,17 +47,36 @@ router.get(
         to: `/orders/${o.id}`,
         created_at: o.sent_at,
       }));
+
+      const [cancellations] = await pool.query(
+        `SELECT c.order_id AS id, o.order_no, c.reason, c.created_at
+         FROM order_cancellations c JOIN orders o ON o.id = c.order_id
+         WHERE c.previous_status IN ('sent','preparing','ready')
+           AND c.created_at >= NOW() - INTERVAL 7 DAY
+         ORDER BY c.created_at DESC LIMIT 50`
+      );
+      cancellations.forEach((c) => notes.push({
+        id: `cancelled-${c.id}`,
+        title: `Order ${c.order_no} was cancelled`,
+        message: `Stop preparation. ${c.reason}`,
+        to: '/kitchen/incoming',
+        created_at: c.created_at,
+      }));
     }
 
     if (role === 'inventory' || role === 'owner') {
       const [items] = await pool.query(
-        'SELECT id, name, quantity, reorder_level FROM inventory_items WHERE quantity <= reorder_level ORDER BY quantity ASC, name LIMIT 50'
+        'SELECT id, name, unit, quantity, reorder_level FROM inventory_items WHERE quantity <= reorder_level ORDER BY quantity ASC, name LIMIT 50'
       );
       items.forEach((item) => notes.push({
         id: `stock-${item.id}`,
+        kind: 'stock',
         title: item.quantity <= 0 ? `${item.name} is out of stock` : `${item.name} is low`,
         message: `Stock is ${item.quantity}; reorder level is ${item.reorder_level}.`,
-        to: '/inventory/low',
+        quantity: item.quantity,
+        reorder_level: item.reorder_level,
+        unit: item.unit,
+        to: role === 'owner' ? '/inventory-overview' : '/inventory/low',
         created_at: null,
       }));
     }
