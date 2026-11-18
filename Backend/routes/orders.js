@@ -19,7 +19,7 @@ const TRANSITIONS = {
 // Kitchen staff must never see prices or totals
 function stripPrices(order, role) {
   if (role !== 'kitchen') return order;
-  const { total, ...rest } = order;
+  const { total, payment_status, payment_method, paid_at, ...rest } = order;
   if (rest.items) rest.items = rest.items.map(({ unit_price, ...item }) => item);
   return rest;
 }
@@ -46,7 +46,7 @@ const ORDER_SELECT = `
   LEFT JOIN users ku ON ku.id = o.prepared_by`;
 
 // Reads the form, checks it, and rebuilds the item lines using the real menu prices
-async function validateOrder(body) {
+async function validateOrder(body, preservedUnavailable = new Map()) {
   const customer_name = String(body.customer_name || '').trim();
   if (!customer_name) throw httpError(400, 'Enter the customer name.');
 
@@ -56,7 +56,16 @@ async function validateOrder(body) {
   let scheduled_at = null;
   if (NEEDS_SCHEDULE.includes(order_type)) {
     if (isBlank(body.scheduled_at)) throw httpError(400, 'Set the date and time for this reservation, event or advance order.');
-    scheduled_at = String(body.scheduled_at).replace('T', ' ');
+    const raw = String(body.scheduled_at);
+    const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(raw);
+    if (!match) throw httpError(400, 'Enter a valid scheduled date and time.');
+    const [y, mo, d, h, mi] = match.slice(1).map(Number);
+    const scheduledDate = new Date(y, mo - 1, d, h, mi);
+    if (scheduledDate.getFullYear() !== y || scheduledDate.getMonth() !== mo - 1 || scheduledDate.getDate() !== d || scheduledDate.getHours() !== h || scheduledDate.getMinutes() !== mi) {
+      throw httpError(400, 'Enter a valid scheduled date and time.');
+    }
+    if (scheduledDate <= new Date()) throw httpError(400, 'Scheduled date and time must be in the future.');
+    scheduled_at = raw.replace('T', ' ');
   }
 
   const guests = isBlank(body.guests) ? null : Number(body.guests);
@@ -74,17 +83,30 @@ async function validateOrder(body) {
   const items = lines.map((l) => {
     const m = menuById.get(Number(l.menu_item_id));
     const quantity = Number(l.quantity);
-    if (!m) throw httpError(400, 'One of the items is not on the menu.');
-    if (!m.is_available) throw httpError(400, `${m.name} is not available right now.`);
+    const notes = isBlank(l.notes) ? null : String(l.notes).trim().slice(0, 255);
+    if (!m) {
+      const preserved = preservedUnavailable.get(`row:${Number(l.existing_item_id)}`);
+      if (!preserved || preserved.menu_item_id !== null || preserved.quantity !== quantity || (preserved.notes || null) !== notes) {
+        throw httpError(400, 'One of the items is not on the menu. Remove it or replace it before saving.');
+      }
+      return preserved;
+    }
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) {
       throw httpError(400, `Quantity for ${m.name} must be a whole number from 1 to 999.`);
+    }
+    if (!m.is_available) {
+      const preserved = preservedUnavailable.get(m.id);
+      if (!preserved || preserved.quantity !== quantity || (preserved.notes || null) !== notes) {
+        throw httpError(400, `${m.name} is no longer available. Remove it or replace it before saving.`);
+      }
+      return { ...preserved, menu_item_id: m.id };
     }
     return {
       menu_item_id: m.id,
       item_name: m.name,
       quantity,
       unit_price: m.price,
-      notes: isBlank(l.notes) ? null : String(l.notes).trim().slice(0, 255),
+      notes,
     };
   });
 
@@ -173,8 +195,8 @@ router.post(
   '/',
   requireRole('cashier'),
   wrap(async (req, res) => {
+    if (req.body?.send === true) throw httpError(409, 'Record payment before sending the order to the kitchen.');
     const { header, items, total } = await validateOrder(req.body || {});
-    const sendNow = req.body.send === true;
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
@@ -183,8 +205,8 @@ router.post(
           ...header,
           order_no: `TMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           total,
-          status: sendNow ? 'sent' : 'pending',
-          sent_at: sendNow ? new Date() : null,
+          status: 'pending',
+          sent_at: null,
           created_by: req.user.id,
         },
       ]);
@@ -192,7 +214,7 @@ router.post(
       const orderNo = `MUN-${String(id).padStart(5, '0')}`;
       await conn.query('UPDATE orders SET order_no = ? WHERE id = ?', [orderNo, id]);
       await writeItems(conn, id, items);
-      await logActivity(req.user.id, sendNow ? 'Order sent' : 'Order created', `${orderNo} for ${header.customer_name}${sendNow ? ' sent to kitchen' : ' saved as draft'}`, conn);
+      await logActivity(req.user.id, 'Order created', `${orderNo} for ${header.customer_name} saved as draft`, conn);
       await conn.commit();
       res.status(201).json({ id, order_no: orderNo });
     } catch (err) {
@@ -209,25 +231,32 @@ router.put(
   '/:id',
   requireRole('cashier'),
   wrap(async (req, res) => {
-    const { header, items, total } = await validateOrder(req.body || {});
-    const sendNow = req.body.send === true;
+    if (req.body?.send === true) throw httpError(409, 'Record payment from the order details before sending it to the kitchen.');
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
-      const [rows] = await conn.query('SELECT id, order_no, status FROM orders WHERE id = ? FOR UPDATE', [req.params.id]);
+      const [rows] = await conn.query('SELECT id, order_no, status, payment_status FROM orders WHERE id = ? FOR UPDATE', [req.params.id]);
       if (!rows.length) throw httpError(404, 'Order not found.');
       if (rows[0].status !== 'pending') {
         throw httpError(409, 'This order was already sent to the kitchen, so it can no longer be edited.');
       }
+      if (rows[0].payment_status === 'paid') throw httpError(409, 'This order is paid and locked. Contact the owner if a correction is needed.');
+      const [oldItems] = await conn.query('SELECT id, menu_item_id, item_name, quantity, unit_price, notes FROM order_items WHERE order_id = ?', [rows[0].id]);
+      const preservedUnavailable = new Map();
+      oldItems.forEach((i) => {
+        if (i.menu_item_id !== null) preservedUnavailable.set(i.menu_item_id, i);
+        else preservedUnavailable.set(`row:${i.id}`, i);
+      });
+      const { header, items, total } = await validateOrder(req.body || {}, preservedUnavailable);
       await conn.query('UPDATE orders SET ?, total = ?, status = ?, sent_at = ? WHERE id = ?', [
         header,
         total,
-        sendNow ? 'sent' : 'pending',
-        sendNow ? new Date() : null,
+        'pending',
+        null,
         rows[0].id,
       ]);
       await writeItems(conn, rows[0].id, items);
-      await logActivity(req.user.id, sendNow ? 'Order sent' : 'Order edited', `${rows[0].order_no} ${sendNow ? 'sent to kitchen' : 'edited'}`, conn);
+      await logActivity(req.user.id, 'Order edited', `${rows[0].order_no} edited`, conn);
       await conn.commit();
       res.json({ id: rows[0].id, order_no: rows[0].order_no });
     } catch (err) {
@@ -239,13 +268,31 @@ router.put(
   })
 );
 
+// ---------------------------------------------------------------- payment (cashier)
+router.post(
+  '/:id/payment',
+  requireRole('cashier'),
+  wrap(async (req, res) => {
+    const method = String(req.body?.method || '');
+    if (!['cash', 'card', 'e_wallet'].includes(method)) throw httpError(400, 'Choose cash, card, or e-wallet.');
+    const [result] = await pool.query(
+      "UPDATE orders SET payment_status = 'paid', payment_method = ?, paid_at = NOW() WHERE id = ? AND status = 'pending' AND payment_status = 'unpaid'",
+      [method, req.params.id]
+    );
+    if (!result.affectedRows) throw httpError(409, 'Payment must be recorded once while the order is still a draft.');
+    const [[order]] = await pool.query('SELECT order_no FROM orders WHERE id = ?', [req.params.id]);
+    await logActivity(req.user.id, 'Payment recorded', `${order.order_no} paid by ${method.replace('_', '-')}`);
+    res.json({ ok: true, payment_status: 'paid', payment_method: method });
+  })
+);
+
 // ---------------------------------------------------------------- send to kitchen (cashier)
 router.post(
   '/:id/send',
   requireRole('cashier'),
   wrap(async (req, res) => {
-    const [result] = await pool.query("UPDATE orders SET status = 'sent', sent_at = NOW() WHERE id = ? AND status = 'pending'", [req.params.id]);
-    if (!result.affectedRows) throw httpError(409, 'This order was already sent or no longer exists.');
+    const [result] = await pool.query("UPDATE orders SET status = 'sent', sent_at = NOW() WHERE id = ? AND status = 'pending' AND payment_status = 'paid'", [req.params.id]);
+    if (!result.affectedRows) throw httpError(409, 'Record payment before sending this order to the kitchen.');
     const [[order]] = await pool.query('SELECT order_no FROM orders WHERE id = ?', [req.params.id]);
     await logActivity(req.user.id, 'Order sent', `${order.order_no} sent to kitchen`);
     res.json({ ok: true });
@@ -257,7 +304,7 @@ router.post(
   '/:id/cancel',
   requireRole('cashier'),
   wrap(async (req, res) => {
-    const [result] = await pool.query("UPDATE orders SET status = 'cancelled' WHERE id = ? AND status = 'pending'", [req.params.id]);
+    const [result] = await pool.query("UPDATE orders SET status = 'cancelled' WHERE id = ? AND status = 'pending' AND payment_status = 'unpaid'", [req.params.id]);
     if (!result.affectedRows) throw httpError(409, 'Only orders that are not yet sent can be cancelled.');
     const [[order]] = await pool.query('SELECT order_no FROM orders WHERE id = ?', [req.params.id]);
     await logActivity(req.user.id, 'Order cancelled', `${order.order_no} cancelled`);

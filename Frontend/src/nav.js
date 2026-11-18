@@ -5,7 +5,6 @@ export const NAV = {
     { label: 'New Order', to: '/orders/new', icon: 'plus' },
     { label: 'Order List', to: '/orders', icon: 'list', end: true },
     { label: 'Order Details', to: '/orders/details', icon: 'file' },
-    { label: 'My Profile', to: '/profile', icon: 'user' },
   ],
   kitchen: [
     { label: 'Dashboard', to: '/dashboard', icon: 'grid' },
@@ -13,7 +12,6 @@ export const NAV = {
     { label: 'Preparing Orders', to: '/kitchen/preparing', icon: 'clock' },
     { label: 'Ready Orders', to: '/kitchen/ready', icon: 'check' },
     { label: 'Order History', to: '/kitchen/history', icon: 'archive' },
-    { label: 'My Profile', to: '/profile', icon: 'user' },
   ],
   inventory: [
     { label: 'Dashboard', to: '/dashboard', icon: 'grid' },
@@ -23,7 +21,6 @@ export const NAV = {
     { label: 'Stock Out', to: '/inventory/stock-out', icon: 'up' },
     { label: 'Low Stock', to: '/inventory/low', icon: 'alert' },
     { label: 'Stock History', to: '/stock-history', icon: 'archive' },
-    { label: 'My Profile', to: '/profile', icon: 'user' },
   ],
   owner: [
     { label: 'Dashboard', to: '/dashboard', icon: 'grid' },
@@ -32,6 +29,5 @@ export const NAV = {
     { label: 'Stock History', to: '/stock-history', icon: 'archive' },
     { label: 'Business Reports', to: '/reports', icon: 'chart' },
     { label: 'User Management', to: '/users', icon: 'users' },
-    { label: 'My Profile', to: '/profile', icon: 'user' },
   ],
 }

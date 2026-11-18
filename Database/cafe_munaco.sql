@@ -42,6 +42,9 @@ CREATE TABLE orders (
   -- pending = saved by cashier, not yet sent (still editable)
   status           ENUM('pending','sent','preparing','ready','served','cancelled') NOT NULL DEFAULT 'pending',
   total            DECIMAL(10,2) NOT NULL DEFAULT 0,
+  payment_status   ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid',
+  payment_method   ENUM('cash','card','e_wallet') NULL,
+  paid_at          DATETIME NULL,
   created_by       INT NOT NULL,
   prepared_by      INT NULL,
   created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

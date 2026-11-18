@@ -39,6 +39,15 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 :focus-visible { outline: 3px solid #2b8f9a; outline-offset: 2px; }
 
+.receipt { display: none; }
+
+@media print {
+  body * { visibility: hidden !important; }
+  .receipt, .receipt * { visibility: visible !important; }
+  .receipt { display: block; position: absolute; inset: 0 auto auto 0; width: 100%; padding: 24px; color: #000; background: #fff; }
+  .receipt li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #ccc; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }

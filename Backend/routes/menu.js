@@ -8,7 +8,7 @@ router.get(
   '/',
   wrap(async (req, res) => {
     const [rows] = await pool.query(
-      'SELECT id, name, category, price FROM menu_items WHERE is_available = 1 ORDER BY category, name'
+      'SELECT id, name, category, price, is_available FROM menu_items ORDER BY category, name'
     );
     res.json(rows);
   })

@@ -14,6 +14,7 @@ export default function NewOrder() {
   const { data: menu, error: menuError } = useFetch('/menu')
   const [form, setForm] = useState(BLANK)
   const [cart, setCart] = useState({}) // menu item id -> { qty, notes }
+  const [savedItems, setSavedItems] = useState([])
   const [category, setCategory] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -36,15 +37,25 @@ export default function NewOrder() {
           scheduled_at: toLocalInput(o.scheduled_at),
           special_requests: o.special_requests || '',
         })
-        setCart(Object.fromEntries(o.items.map((i) => [i.menu_item_id, { qty: i.quantity, notes: i.notes || '' }])))
+        setSavedItems(o.items)
+        setCart(Object.fromEntries(o.items.map((i) => [i.menu_item_id === null ? `deleted-${i.id}` : i.menu_item_id, { qty: i.quantity, notes: i.notes || '' }])))
         setReady(true)
       })
       .catch((e) => setError(e.message))
   }, [id])
 
   const categories = useMemo(() => [...new Set((menu || []).map((m) => m.category))], [menu])
-  const shown = (menu || []).filter((m) => !category || m.category === category)
-  const lines = (menu || []).filter((m) => cart[m.id])
+  const shown = (menu || []).filter((m) => m.is_available && (!category || m.category === category))
+  const lines = Object.keys(cart).map((key) => {
+    if (key.startsWith('deleted-')) {
+      const saved = savedItems.find((item) => `deleted-${item.id}` === key)
+      return saved ? { id: key, existingItemId: saved.id, name: saved.item_name, price: saved.unit_price, archived: true } : null
+    }
+    const item = (menu || []).find((m) => m.id === Number(key))
+    if (!item) return null
+    const saved = savedItems.find((i) => i.menu_item_id === item.id)
+    return !item.is_available && saved ? { ...item, name: saved.item_name, price: saved.unit_price, retainedUnavailable: true } : item
+  }).filter(Boolean)
   const total = lines.reduce((sum, m) => sum + m.price * cart[m.id].qty, 0)
 
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.value })
@@ -57,20 +68,25 @@ export default function NewOrder() {
     setCart(next)
   }
   const setNote = (m, notes) => setCart({ ...cart, [m.id]: { ...cart[m.id], notes } })
+  const removeLine = (id) => setCart((current) => {
+    const next = { ...current }
+    delete next[id]
+    return next
+  })
 
-  async function submit(send) {
+  async function submit(continueToPayment) {
     setError('')
     setBusy(true)
     try {
       const body = {
         ...form,
-        send,
-        items: lines.map((m) => ({ menu_item_id: m.id, quantity: cart[m.id].qty, notes: cart[m.id].notes })),
+        send: false,
+        items: lines.map((m) => ({ menu_item_id: m.archived ? null : m.id, existing_item_id: m.existingItemId, quantity: cart[m.id].qty, notes: cart[m.id].notes })),
       }
       const res = id
         ? await api(`/orders/${id}`, { method: 'PUT', body })
         : await api('/orders', { method: 'POST', body })
-      navigate(`/orders/${res.id}`)
+      navigate(continueToPayment ? `/orders/${res.id}` : '/orders')
     } catch (e) {
       setError(e.message)
       setBusy(false)
@@ -132,22 +148,22 @@ export default function NewOrder() {
               {lines.map((m) => (
                 <li key={m.id}>
                   <div className="cart-top">
-                    <span>{m.name}</span>
+                    <span>{m.name}{(m.retainedUnavailable || m.archived) && <span className="muted"> (unavailable)</span>}</span>
                     <span>{peso(m.price * cart[m.id].qty)}</span>
                   </div>
                   <div className="cart-controls">
-                    <button className="qty-btn" onClick={() => change(m, -1)} aria-label={`Remove one ${m.name}`}>−</button>
+                    {!m.retainedUnavailable && !m.archived && <button className="qty-btn" onClick={() => change(m, -1)} aria-label={`Remove one ${m.name}`}>−</button>}
                     <span>{cart[m.id].qty}</span>
-                    <button className="qty-btn" onClick={() => change(m, 1)} aria-label={`Add one ${m.name}`}>+</button>
-                    <input placeholder="Note (no chili…)" value={cart[m.id].notes} onChange={(e) => setNote(m, e.target.value)} />
+                    {m.retainedUnavailable || m.archived ? <button className="btn btn-quiet" onClick={() => removeLine(m.id)}>Remove unavailable item</button> : <button className="qty-btn" onClick={() => change(m, 1)} aria-label={`Add one ${m.name}`}>+</button>}
+                    {!m.retainedUnavailable && !m.archived && <input placeholder="Item note" value={cart[m.id].notes} onChange={(e) => setNote(m, e.target.value)} />}
                   </div>
                 </li>
               ))}
             </ul>
           )}
           <div className="cart-total"><span>Total</span><strong>{peso(total)}</strong></div>
-          <button className="btn btn-primary wide" disabled={busy} onClick={() => submit(true)}>Send to kitchen</button>
-          <button className="btn wide" disabled={busy} onClick={() => submit(false)}>Save without sending</button>
+          <button className="btn btn-primary wide" disabled={busy} onClick={() => submit(true)}>Continue to payment and sending</button>
+          <button className="btn wide" disabled={busy} onClick={() => submit(false)}>Save draft</button>
         </aside>
       </div>
     </>
