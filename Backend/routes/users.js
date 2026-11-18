@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { pool } from '../config/db.js';
-import { hashPassword } from '../auth.js';
+import { hashPassword } from '../services/authService.js';
 import { requireRole } from '../middleware/auth.js';
-import { wrap, httpError, isBlank, logActivity } from '../utils.js';
+import { wrap, httpError, isBlank } from '../utils/http.js';
+import { logActivity } from '../services/activityService.js';
 
 const router = Router();
 router.use(requireRole('owner')); // the whole file is owner-only

@@ -1,7 +1,11 @@
-export const peso = (n) =>
-  '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const numberFormatter = new Intl.NumberFormat('en-PH', { maximumFractionDigits: 2 })
 
-export const qty = (n) => Number(n).toLocaleString('en-PH', { maximumFractionDigits: 2 })
+export const formatNumber = (value) => numberFormatter.format(Number(value ?? 0))
+export const formatCurrency = (value) => `₱${formatNumber(value)}`
+
+// Backward-compatible names for modules that already use these helpers.
+export const peso = formatCurrency
+export const qty = formatNumber
 
 export const dateTime = (d) =>
   d ? new Date(d).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '–'

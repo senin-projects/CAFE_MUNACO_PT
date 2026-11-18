@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../config/db.js';
 import { requireRole } from '../middleware/auth.js';
-import { wrap } from '../utils.js';
+import { wrap } from '../utils/http.js';
 
 const router = Router();
 router.use(requireRole('owner'));

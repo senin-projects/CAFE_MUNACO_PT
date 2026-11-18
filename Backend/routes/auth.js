@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { pool } from '../config/db.js';
-import { hashPassword, verifyPassword, signToken } from '../auth.js';
+import { findForLogin, findPasswordHash, updateName, updatePassword } from '../models/userModel.js';
+import { hashPassword, verifyPassword, signToken } from '../services/authService.js';
 import { requireAuth } from '../middleware/auth.js';
-import { wrap, httpError, isBlank } from '../utils.js';
+import { wrap, httpError, isBlank } from '../utils/http.js';
 
 const router = Router();
 const publicUser = (u) => ({ id: u.id, full_name: u.full_name, username: u.username, role: u.role });
@@ -12,8 +12,7 @@ router.post(
   wrap(async (req, res) => {
     const { username, password } = req.body || {};
     if (isBlank(username) || isBlank(password)) throw httpError(400, 'Enter your username and password.');
-    const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [String(username).trim()]);
-    const user = rows[0];
+    const user = await findForLogin(String(username).trim());
     if (!user || !verifyPassword(String(password), user.password_hash)) {
       throw httpError(401, 'Wrong username or password.');
     }
@@ -30,7 +29,7 @@ router.put(
   wrap(async (req, res) => {
     const name = String(req.body?.full_name || '').trim();
     if (name.length < 2) throw httpError(400, 'Enter your full name.');
-    await pool.query('UPDATE users SET full_name = ? WHERE id = ?', [name, req.user.id]);
+    await updateName(req.user.id, name);
     res.json({ user: { ...publicUser(req.user), full_name: name } });
   })
 );
@@ -43,11 +42,11 @@ router.put(
     if (isBlank(new_password) || String(new_password).length < 6) {
       throw httpError(400, 'The new password needs at least 6 characters.');
     }
-    const [rows] = await pool.query('SELECT password_hash FROM users WHERE id = ?', [req.user.id]);
-    if (!verifyPassword(String(current_password || ''), rows[0].password_hash)) {
+    const passwordHash = await findPasswordHash(req.user.id);
+    if (!passwordHash || !verifyPassword(String(current_password || ''), passwordHash)) {
       throw httpError(400, 'Your current password is not correct.');
     }
-    await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [hashPassword(String(new_password)), req.user.id]);
+    await updatePassword(req.user.id, hashPassword(String(new_password)));
     res.json({ ok: true });
   })
 );

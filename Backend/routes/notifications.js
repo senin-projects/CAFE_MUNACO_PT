@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { pool } from '../config/db.js';
-import { wrap } from '../utils.js';
+import { wrap } from '../utils/http.js';
 
 const router = Router();
 

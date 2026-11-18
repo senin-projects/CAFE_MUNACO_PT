@@ -173,7 +173,7 @@ function Body({ role, d }) {
             {d.order_status.length === 0 ? <Empty>No orders yet today.</Empty> : (
               <ul className="rows">
                 {d.order_status.map((r) => (
-                  <li key={r.status}><span>{STATUS_LABEL[r.status]}</span><strong>{r.count}</strong></li>
+                  <li key={r.status}><span>{STATUS_LABEL[r.status]}</span><strong>{qty(r.count)}</strong></li>
                 ))}
               </ul>
             )}

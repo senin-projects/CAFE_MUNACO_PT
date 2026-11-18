@@ -1,4 +1,4 @@
-import { STATUS_LABEL } from '../utils.js'
+import { STATUS_LABEL, formatNumber } from '../utils.js'
 
 export function PageHeader({ title, subtitle, children }) {
   return (
@@ -20,9 +20,15 @@ export function StockBadge({ status }) {
 }
 
 export function StatCard({ label, value, tone }) {
+  const numericValue = typeof value === 'number'
+    ? value
+    : typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))
+      ? Number(value)
+      : null
+
   return (
     <div className={`stat ${tone ? 'stat-' + tone : ''}`}>
-      <div className="stat-value">{value}</div>
+      <div className="stat-value">{numericValue === null ? value : formatNumber(numericValue)}</div>
       <div className="stat-label">{label}</div>
     </div>
   )

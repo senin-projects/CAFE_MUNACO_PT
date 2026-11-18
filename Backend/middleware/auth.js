@@ -1,5 +1,5 @@
-import { pool } from '../config/db.js';
-import { verifyToken } from '../auth.js';
+import { findById } from '../models/userModel.js';
+import { verifyToken } from '../services/authService.js';
 
 // Every request must carry "Authorization: Bearer <token>". The user is re-checked
 // in the database each time, so a deactivated account is locked out immediately.
@@ -8,14 +8,11 @@ export async function requireAuth(req, res, next) {
     const header = req.headers.authorization || '';
     const data = verifyToken(header.startsWith('Bearer ') ? header.slice(7) : '');
     if (!data) return res.status(401).json({ error: 'Please sign in again.' });
-    const [rows] = await pool.query(
-      'SELECT id, full_name, username, role, is_active FROM users WHERE id = ?',
-      [data.id]
-    );
-    if (!rows.length || !rows[0].is_active) {
+    const user = await findById(data.id);
+    if (!user || !user.is_active) {
       return res.status(401).json({ error: 'This account is not active.' });
     }
-    req.user = rows[0];
+    req.user = user;
     next();
   } catch (err) {
     next(err);

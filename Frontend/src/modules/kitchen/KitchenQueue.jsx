@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../../services/api.js'
 import { useFetch } from '../../hooks.js'
 import { Empty, ErrorBox, Loading, PageHeader } from '../../components/ui.jsx'
-import { ORDER_TYPES, dateTime, timeAgo } from '../../utils.js'
+import { ORDER_TYPES, dateTime, timeAgo, qty } from '../../utils.js'
 
 // One screen for Incoming / Preparing / Ready / History. Only `status` changes.
 export default function KitchenQueue({ status, title, empty, history }) {
@@ -58,12 +58,12 @@ export default function KitchenQueue({ status, title, empty, history }) {
                 </div>
               </header>
 
-              {o.scheduled_at && <p className="muted">{ORDER_TYPES[o.order_type]} for {dateTime(o.scheduled_at)}{o.guests ? ` · ${o.guests} guests` : ''}</p>}
+              {o.scheduled_at && <p className="muted">{ORDER_TYPES[o.order_type]} for {dateTime(o.scheduled_at)}{o.guests ? ` · ${qty(o.guests)} guests` : ''}</p>}
 
               <ul className="ticket-items">
                 {o.items.map((i) => (
                   <li key={i.id}>
-                    <span className="ticket-qty">{i.quantity}×</span>
+                    <span className="ticket-qty">{qty(i.quantity)}×</span>
                     <span>{i.item_name}{i.notes && <div className="note">{i.notes}</div>}</span>
                   </li>
                 ))}

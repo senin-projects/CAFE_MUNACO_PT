@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../../services/api.js'
 import { useFetch } from '../../hooks.js'
 import { ErrorBox, Loading, PageHeader } from '../../components/ui.jsx'
-import { HAS_TABLE, NEEDS_SCHEDULE, ORDER_TYPES, peso, toLocalInput } from '../../utils.js'
+import { HAS_TABLE, NEEDS_SCHEDULE, ORDER_TYPES, peso, qty, toLocalInput } from '../../utils.js'
 
 const BLANK = { customer_name: '', order_type: 'dine_in', table_no: '', guests: '', scheduled_at: '', special_requests: '' }
 
@@ -145,7 +145,7 @@ export default function NewOrder() {
                 <button key={m.id} className="menu-item" onClick={() => add(m)}>
                   <span>{m.name}</span>
                   <strong>{peso(m.price)}</strong>
-                  {cart[m.id] && <em className="in-cart">{cart[m.id].qty}</em>}
+                  {cart[m.id] && <em className="in-cart">{qty(cart[m.id].qty)}</em>}
                 </button>
               ))}
             </div>
@@ -164,7 +164,7 @@ export default function NewOrder() {
                   </div>
                   <div className="cart-controls">
                     {!m.retainedUnavailable && !m.archived && <button className="qty-btn" onClick={() => change(m, -1)} aria-label={`Remove one ${m.name}`}>−</button>}
-                    <span>{cart[m.id].qty}</span>
+                    <span>{qty(cart[m.id].qty)}</span>
                     {m.retainedUnavailable || m.archived ? <button className="btn btn-quiet" onClick={() => removeLine(m.id)}>Remove unavailable item</button> : <button className="qty-btn" onClick={() => change(m, 1)} aria-label={`Add one ${m.name}`}>+</button>}
                     {!m.retainedUnavailable && !m.archived && <input placeholder="Item note" value={cart[m.id].notes} onChange={(e) => setNote(m, e.target.value)} />}
                   </div>

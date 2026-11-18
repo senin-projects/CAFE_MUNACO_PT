@@ -4,7 +4,7 @@ import { useAuth } from '../../auth.jsx'
 import { useFetch } from '../../hooks.js'
 import { qs } from '../../services/api.js'
 import { Empty, ErrorBox, Loading, PageHeader, StatusBadge } from '../../components/ui.jsx'
-import { ORDER_TYPES, STATUS_LABEL, dateTime, peso } from '../../utils.js'
+import { ORDER_TYPES, STATUS_LABEL, dateTime, peso, qty } from '../../utils.js'
 
 // Used for "Order List" (cashier) and "Orders" (owner)
 export default function OrderList() {
@@ -63,7 +63,7 @@ export default function OrderList() {
                   <td><strong>{o.order_no}</strong></td>
                   <td>{o.customer_name}{o.table_no && <span className="muted"> · {o.table_no}</span>}</td>
                   <td>{ORDER_TYPES[o.order_type]}</td>
-                  <td>{o.item_count}</td>
+                  <td>{qty(o.item_count)}</td>
                   <td className="num">{peso(o.total)}</td>
                   <td><StatusBadge status={o.status} /></td>
                   <td className="muted">{dateTime(o.created_at)}</td>

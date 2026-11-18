@@ -4,7 +4,7 @@ import { api } from '../../services/api.js'
 import { useAuth } from '../../auth.jsx'
 import { useFetch } from '../../hooks.js'
 import { ErrorBox, Loading, PageHeader, StatusBadge } from '../../components/ui.jsx'
-import { ORDER_TYPES, dateTime, peso } from '../../utils.js'
+import { ORDER_TYPES, dateTime, peso, qty } from '../../utils.js'
 
 const STEPS = [
   ['created_at', 'Created'],
@@ -86,7 +86,7 @@ export default function OrderDetails() {
             <dt>Customer</dt><dd>{o.customer_name}</dd>
             <dt>Type</dt><dd>{ORDER_TYPES[o.order_type]}</dd>
             {o.table_no && <><dt>Table / area</dt><dd>{o.table_no}</dd></>}
-            {o.guests && <><dt>Guests</dt><dd>{o.guests}</dd></>}
+            {o.guests && <><dt>Guests</dt><dd>{qty(o.guests)}</dd></>}
             {o.scheduled_at && <><dt>Scheduled for</dt><dd>{dateTime(o.scheduled_at)}</dd></>}
             <dt>Taken by</dt><dd>{o.created_by_name}</dd>
             {o.prepared_by_name && <><dt>Prepared by</dt><dd>{o.prepared_by_name}</dd></>}
@@ -119,7 +119,7 @@ export default function OrderDetails() {
               {o.items.map((i) => (
                 <tr key={i.id}>
                   <td>{i.item_name}{i.notes && <div className="note">{i.notes}</div>}</td>
-                  <td className="num">{i.quantity}</td>
+                  <td className="num">{qty(i.quantity)}</td>
                   {showPrices && <><td className="num">{peso(i.unit_price)}</td><td className="num">{peso(i.quantity * i.unit_price)}</td></>}
                 </tr>
               ))}
@@ -130,7 +130,7 @@ export default function OrderDetails() {
       </section>
       {user.role !== 'kitchen' && <section className="receipt">
         <h1>Cafe Munaco</h1><p>Receipt · {o.order_no}</p><p>{o.customer_name} · {ORDER_TYPES[o.order_type]}</p>
-        <ul>{o.items.map((i) => <li key={i.id}>{i.quantity} × {i.item_name}<span>{peso(i.quantity * i.unit_price)}</span></li>)}</ul>
+        <ul>{o.items.map((i) => <li key={i.id}>{qty(i.quantity)} × {i.item_name}<span>{peso(i.quantity * i.unit_price)}</span></li>)}</ul>
         <strong>Total: {peso(o.total)}</strong><p>{o.payment_status === 'paid' ? `Paid by ${o.payment_method?.replace('_', '-')}` : 'Unpaid'}</p>
         {o.paid_at && <p>{dateTime(o.paid_at)}</p>}
       </section>}

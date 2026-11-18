@@ -35,8 +35,8 @@ export default function Reports() {
             {r.daily.length === 0 ? <Empty>No served orders in this period.</Empty> : (
               <div className="bars" role="img" aria-label="Bar chart of sales per day">
                 {r.daily.map((d) => (
-                  <div className="bar-col" key={d.day} title={`${d.day}: ${peso(d.sales)} from ${d.orders} orders`}>
-                    <span className="bar-value">{peso(d.sales).replace('.00', '')}</span>
+                  <div className="bar-col" key={d.day} title={`${d.day}: ${peso(d.sales)} from ${qty(d.orders)} orders`}>
+                    <span className="bar-value">{peso(d.sales)}</span>
                     <div className="bar" style={{ height: `${Math.max(4, (d.sales / maxDay) * 100)}%` }} />
                     <span className="bar-label">{new Date(d.day + 'T00:00').toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</span>
                   </div>
@@ -52,7 +52,7 @@ export default function Reports() {
                 <ul className="hbars">
                   {r.by_type.map((t) => (
                     <li key={t.order_type}>
-                      <div className="hbar-top"><span>{ORDER_TYPES[t.order_type]}</span><span>{peso(t.sales)} <span className="muted">({t.orders})</span></span></div>
+                      <div className="hbar-top"><span>{ORDER_TYPES[t.order_type]}</span><span>{peso(t.sales)} <span className="muted">({qty(t.orders)})</span></span></div>
                       <div className="hbar"><div style={{ width: `${(t.sales / maxType) * 100}%` }} /></div>
                     </li>
                   ))}
@@ -74,7 +74,7 @@ export default function Reports() {
             <section className="panel">
               <h2>All orders by status</h2>
               <ul className="rows">
-                {r.order_status.map((s) => <li key={s.status}><span>{STATUS_LABEL[s.status]}</span><strong>{s.count}</strong></li>)}
+                {r.order_status.map((s) => <li key={s.status}><span>{STATUS_LABEL[s.status]}</span><strong>{qty(s.count)}</strong></li>)}
               </ul>
             </section>
 
@@ -82,7 +82,7 @@ export default function Reports() {
               <h2>Why stock was removed</h2>
               {r.stock_out_reasons.length === 0 ? <Empty>No stock was removed in this period.</Empty> : (
                 <ul className="rows">
-                  {r.stock_out_reasons.map((s) => <li key={s.reason}><span>{s.reason}</span><strong>{s.count}</strong></li>)}
+                  {r.stock_out_reasons.map((s) => <li key={s.reason}><span>{s.reason}</span><strong>{qty(s.count)}</strong></li>)}
                 </ul>
               )}
             </section>

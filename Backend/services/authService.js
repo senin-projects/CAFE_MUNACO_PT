@@ -1,4 +1,4 @@
-// Password hashing + login tokens using only Node's built-in crypto (no extra packages).
+// Password hashing and login tokens using Node's built-in crypto.
 import crypto from 'node:crypto';
 
 const secret = () => process.env.TOKEN_SECRET || 'dev-secret-change-me';
