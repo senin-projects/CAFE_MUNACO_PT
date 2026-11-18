@@ -24,7 +24,7 @@ export default function Login() {
   return (
     <div className="login">
       <div className="login-art">
-        <img className="login-logo" src="/assets/cafe_munaco_logo.png" alt="Cafe Munaco — Refined Brews, Elevated Spirits" />
+        <img className="login-logo" src="/assets/cafe_munaco_original_transparent.png" alt="Cafe Munaco — Refined Brews, Elevated Spirits" />
         <p>Madalunot, Calaca, Batangas</p>
       </div>
 

@@ -50,7 +50,7 @@ export default function OrderDetails() {
 
   return (
     <>
-      <PageHeader title={o.order_no} subtitle={`${o.customer_name} · ${ORDER_TYPES[o.order_type]}`}>
+      <PageHeader title={<span className="order-number">{o.order_no}</span>} subtitle={`${o.customer_name} · ${ORDER_TYPES[o.order_type]}`}>
         <StatusBadge status={o.status} />
         {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'unpaid' && (
           <>

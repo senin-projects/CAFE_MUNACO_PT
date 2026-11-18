@@ -1,20 +1,23 @@
 /* Base styles and colour tokens */
 :root {
-  --harbor: #0f3b40;        /* sidebar, deep sea teal */
-  --harbor-2: #17525a;
-  --calamansi: #e4e87c;     /* active menu highlight */
-  --salt: #f2f5f4;          /* page background */
-  --panel: #ffffff;
-  --ink: #1b2b2d;
-  --muted: #5d7073;
-  --line: #dbe3e2;
-  --coral: #c93d28;         /* main buttons */
-  --coral-dark: #a93020;
-  --good: #1f7a4d;
-  --warn: #a8620a;
-  --bad: #b4261b;
-  --font-body: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-head: 'Bricolage Grotesque', 'Figtree', system-ui, sans-serif;
+  color-scheme: light;
+  --harbor: #302019;
+  --harbor-2: #4a3025;
+  --calamansi: #d7b875;
+  --salt: #f4ecdd;
+  --panel: #fffdf8;
+  --ink: #30231d;
+  --muted: #817166;
+  --line: #e8ddcc;
+  --coral: #9d5538;
+  --coral-dark: #80432e;
+  --good: #39704d;
+  --warn: #99651d;
+  --bad: #a64032;
+  --font-body: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-head: 'Cormorant Garamond', Georgia, serif;
+  --shadow-sm: 0 2px 8px rgb(48 32 25 / 5%);
+  --shadow-md: 0 12px 32px rgb(48 32 25 / 9%);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -26,18 +29,18 @@ body {
   font-size: 15px;
   line-height: 1.5;
   color: var(--ink);
-  background: var(--salt);
+  background: #f6f2ea;
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2 { font-family: var(--font-head); font-weight: 700; margin: 0; letter-spacing: -0.01em; }
-h1 { font-size: 1.75rem; line-height: 1.15; }
-h2 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+h1, h2 { font-family: var(--font-head); font-weight: 700; margin: 0; letter-spacing: -0.015em; }
+h1 { font-size: clamp(2rem, 3vw, 2.55rem); line-height: 1.04; }
+h2 { font-family: var(--font-body); font-size: 1rem; font-weight: 700; margin-bottom: 0.85rem; letter-spacing: -0.015em; }
 p { margin: 0 0 0.5rem; }
 a { color: inherit; text-decoration: none; }
 ul, ol { margin: 0; padding: 0; list-style: none; }
 
-:focus-visible { outline: 3px solid #2b8f9a; outline-offset: 2px; }
+:focus-visible { outline: 3px solid #c18a4a; outline-offset: 2px; }
 
 .receipt { display: none; }
 
