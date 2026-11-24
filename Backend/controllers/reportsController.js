@@ -9,7 +9,7 @@ router.use(requireRole('owner'));
 
 const rows = async (sql, params = []) => (await pool.query(sql, params))[0];
 
-// ?days=7|30|90  - sales count only orders that were served
+// Sales count only orders that were served.
 router.get(
   '/summary',
   wrap(async (req, res) => {
@@ -30,12 +30,6 @@ router.get(
          GROUP BY day ORDER BY day`,
         [days]
       ),
-      by_type: await rows(
-        `SELECT order_type, COUNT(*) AS orders, SUM(total) AS sales
-         FROM orders WHERE status = 'served' AND served_at >= NOW() - INTERVAL ? DAY
-         GROUP BY order_type ORDER BY sales DESC`,
-        [days]
-      ),
       top_items: await rows(
         `SELECT oi.item_name, SUM(oi.quantity) AS quantity, SUM(oi.quantity * oi.unit_price) AS sales
          FROM order_items oi JOIN orders o ON o.id = oi.order_id
@@ -43,23 +37,26 @@ router.get(
          GROUP BY oi.item_name ORDER BY quantity DESC LIMIT 8`,
         [days]
       ),
-      order_status: await rows(
-        'SELECT status, COUNT(*) AS count FROM orders WHERE created_at >= NOW() - INTERVAL ? DAY GROUP BY status',
+      by_category: await rows(
+        `SELECT COALESCE(mi.category, 'Uncategorized') AS category,
+                SUM(oi.quantity) AS quantity,
+                SUM(oi.quantity * oi.unit_price) AS sales
+         FROM order_items oi
+         JOIN orders o ON o.id = oi.order_id
+         LEFT JOIN menu_items mi ON mi.id = oi.menu_item_id
+         WHERE o.status = 'served' AND o.served_at >= NOW() - INTERVAL ? DAY
+         GROUP BY category ORDER BY sales DESC`,
         [days]
       ),
-      stock_in: (
-        await rows(
-          "SELECT COUNT(*) AS count FROM stock_movements WHERE movement_type = 'in' AND created_at >= NOW() - INTERVAL ? DAY",
-          [days]
-        )
-      )[0].count,
-      stock_out_reasons: await rows(
-        `SELECT reason, COUNT(*) AS count FROM stock_movements
-         WHERE movement_type = 'out' AND created_at >= NOW() - INTERVAL ? DAY GROUP BY reason ORDER BY count DESC`,
-        [days]
+      monthly: await rows(
+        `SELECT DATE_FORMAT(served_at, '%Y-%m') AS period, COUNT(*) AS orders, SUM(total) AS sales
+         FROM orders WHERE status = 'served' AND served_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
+         GROUP BY period ORDER BY period`
       ),
-      low_stock: await rows(
-        'SELECT id, name, unit, quantity, reorder_level FROM inventory_items WHERE quantity <= reorder_level ORDER BY name'
+      yearly: await rows(
+        `SELECT DATE_FORMAT(served_at, '%Y') AS period, COUNT(*) AS orders, SUM(total) AS sales
+         FROM orders WHERE status = 'served' AND served_at >= DATE_SUB(CURDATE(), INTERVAL 4 YEAR)
+         GROUP BY period ORDER BY period`
       ),
     });
   })

@@ -20,6 +20,11 @@ import Reports from './modules/owner/Reports.jsx'
 import Users from './modules/owner/Users.jsx'
 import MenuManagement from './modules/owner/MenuManagement.jsx'
 
+function Home() {
+  const { user } = useAuth()
+  return user.role === 'owner' ? <Reports /> : <Dashboard />
+}
+
 // Only lets the listed roles open a page (the server checks again for every request)
 function Only({ roles, children }) {
   const { user } = useAuth()
@@ -42,7 +47,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route element={<Layout />}>
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Home />} />
         <Route path="/profile" element={<Profile />} />
 
         {/* Orders: cashier and owner (kitchen can open a single order) */}
@@ -70,7 +75,7 @@ export default function App() {
 
         {/* Owner */}
         <Route path="/inventory-overview" element={<Only roles={['owner']}><InventoryList readOnly /></Only>} />
-        <Route path="/reports" element={<Only roles={['owner']}><Reports /></Only>} />
+        <Route path="/reports" element={<Navigate to="/dashboard" replace />} />
         <Route path="/users" element={<Only roles={['owner']}><Users /></Only>} />
         <Route path="/menu-management" element={<Only roles={['owner', 'kitchen']}><MenuManagement /></Only>} />
 

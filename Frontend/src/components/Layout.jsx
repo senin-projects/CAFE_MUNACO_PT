@@ -12,7 +12,7 @@ export default function Layout() {
   const location = useLocation()
 
   return (
-    <div className="shell">
+    <div className={`shell ${user.role === 'owner' ? 'owner-shell' : ''}`}>
       <button className="menu-btn" onClick={() => setOpen(!open)} aria-label="Open menu">
         <Icon name="menu" size={22} />
       </button>

@@ -1,5 +1,7 @@
 /* ---------- app shell ---------- */
 .shell { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
+.owner-shell { height: 100vh; overflow-y: auto; scrollbar-width: none; }
+.owner-shell::-webkit-scrollbar { display: none; }
 
 .sidebar {
   background: var(--harbor);
@@ -253,6 +255,40 @@ tr.inactive td { color: var(--muted); }
 .hbar { height: 9px; background: #eee4d9; border-radius: 99px; overflow: hidden; }
 .hbar div { height: 100%; background: var(--coral); border-radius: 99px; }
 
+/* ---------- owner sales overview charts ---------- */
+.report-chart-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.report-chart-heading h2 { margin-bottom: 0; }
+.report-chart-scroll { overflow: hidden; padding: 20px 2px 4px; }
+.report-chart { display: grid; align-items: end; gap: 5px; min-width: 0; height: 245px; border-bottom: 1px solid var(--line); background: repeating-linear-gradient(to bottom, transparent 0, transparent 24%, #eee7dc 24.3%, transparent 24.8%); }
+.report-chart-column { display: grid; grid-template-rows: 24px minmax(0, 1fr) 28px; justify-items: center; align-items: end; min-width: 0; height: 100%; }
+.report-chart-value { align-self: center; max-width: 100%; overflow: hidden; color: var(--muted); font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
+.report-chart-track { display: flex; align-items: end; justify-content: center; width: 100%; height: 100%; }
+.report-chart-bar { width: min(34px, 68%); min-height: 4px; border-radius: 7px 7px 2px 2px; background: linear-gradient(180deg, #c89755, #8f4c32); box-shadow: 0 3px 8px rgb(83 49 31 / 12%); }
+.report-chart-label { align-self: center; max-width: 100%; overflow: hidden; color: var(--muted); font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
+.report-line-wrap { width: 100%; overflow: hidden; padding-top: 14px; }
+.report-line-chart { display: block; width: 100%; height: 280px; max-width: 100%; overflow: visible; }
+.report-line-grid { stroke: #e8ddcc; stroke-width: 1; }
+.report-line-axis-label { fill: var(--muted); font-family: var(--font-body); font-size: 11px; }
+.report-line-path { fill: none; stroke: #9d5538; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
+.report-line-point { fill: #fffdf8; stroke: #9d5538; stroke-width: 2.5; }
+.category-chart-layout { display: grid; grid-template-columns: 1fr; justify-items: center; gap: 20px; padding-top: 18px; }
+.category-donut { display: grid; place-items: center; width: min(100%, 210px); aspect-ratio: 1; margin: 0 auto; border-radius: 50%; }
+.category-donut-hole { display: flex; width: 62%; aspect-ratio: 1; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--panel); text-align: center; }
+.category-donut-hole strong { max-width: 100%; overflow: hidden; font-size: clamp(.8rem, 1.2vw, 1.1rem); text-overflow: ellipsis; }
+.category-donut-hole span { color: var(--muted); font-size: .72rem; }
+.category-legend { display: flex; width: min(100%, 360px); flex-direction: column; gap: 8px; min-width: 0; }
+.category-legend li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; font-size: .82rem; }
+.category-legend-name { display: flex; min-width: 0; align-items: center; gap: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.category-legend-name i { width: 10px; height: 10px; flex: none; border-radius: 3px; }
+.category-legend li > strong { font-size: .78rem; }
+.best-selling-list { display: flex; flex-direction: column; gap: 15px; padding-top: 18px; }
+.best-selling-list li { min-width: 0; }
+.best-selling-label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 5px; font-size: .84rem; }
+.best-selling-label strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.best-selling-label span { flex: none; color: var(--muted); font-size: .78rem; }
+.best-selling-list .hbar { height: 10px; }
+.best-selling-list .hbar div { background: linear-gradient(90deg, #9d5538, #c89755); }
+
 /* ---------- modal ---------- */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(57, 37, 29, 0.48); display: grid; place-items: center; padding: 16px; z-index: 50; }
 .modal { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; box-shadow: 0 18px 60px #39251d30; }
@@ -449,6 +485,8 @@ tbody tr:hover { background: #fcf8f0; }
   .stat-value { font-size: 1.65rem; }
   .stat-label { font-size: .76rem; }
   .panel { padding: 18px 16px; border-radius: 13px; }
+  .category-chart-layout { grid-template-columns: 1fr; gap: 18px; }
+  .category-donut { width: min(190px, 75%); }
   .grid-2 { gap: 14px; }
   .filters { display: grid; grid-template-columns: 1fr 1fr; }
   .filters .search { grid-column: 1 / -1; max-width: none; }
