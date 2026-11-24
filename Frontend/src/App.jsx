@@ -7,7 +7,6 @@ import Dashboard from './pages/Dashboard.jsx'
 import Profile from './pages/Profile.jsx'
 import OrderList from './modules/cashier/OrderList.jsx'
 import OrderDetails from './modules/cashier/OrderDetails.jsx'
-import OrderLookup from './modules/cashier/OrderLookup.jsx'
 import NewOrder from './modules/cashier/NewOrder.jsx'
 import KitchenQueue from './modules/kitchen/KitchenQueue.jsx'
 import KitchenOrders from './modules/kitchen/KitchenOrders.jsx'
@@ -53,7 +52,6 @@ export default function App() {
         {/* Orders: cashier and owner (kitchen can open a single order) */}
         <Route path="/orders" element={<Only roles={['cashier', 'owner']}><OrderList /></Only>} />
         <Route path="/orders/new" element={<Only roles={['cashier']}><NewOrder /></Only>} />
-        <Route path="/orders/details" element={<Only roles={['cashier']}><OrderLookup /></Only>} />
         <Route path="/orders/:id" element={<Only roles={['cashier', 'kitchen', 'owner']}><OrderDetails /></Only>} />
         <Route path="/orders/:id/edit" element={<Only roles={['cashier']}><NewOrder /></Only>} />
 

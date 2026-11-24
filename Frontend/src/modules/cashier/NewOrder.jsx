@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../../services/api.js'
 import { useFetch } from '../../hooks.js'
 import { ErrorBox, Loading, PageHeader } from '../../components/ui.jsx'
+import Icon from '../../components/Icon.jsx'
 import { HAS_TABLE, NEEDS_SCHEDULE, ORDER_TYPES, peso, qty, toLocalInput } from '../../utils.js'
 
 const BLANK = { customer_name: '', order_type: 'dine_in', table_no: '', guests: '', scheduled_at: '', special_requests: '' }
@@ -16,7 +17,9 @@ export default function NewOrder() {
   const [cart, setCart] = useState({}) // menu item id -> { qty, notes }
   const [savedItems, setSavedItems] = useState([])
   const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [cashReceived, setCashReceived] = useState('0')
   const [category, setCategory] = useState('')
+  const [menuSearch, setMenuSearch] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [ready, setReady] = useState(!id)
@@ -46,7 +49,11 @@ export default function NewOrder() {
   }, [id])
 
   const categories = useMemo(() => [...new Set((menu || []).map((m) => m.category))], [menu])
-  const shown = (menu || []).filter((m) => m.is_available && (!category || m.category === category))
+  const shown = (menu || []).filter((m) => {
+    const query = menuSearch.trim().toLowerCase()
+    const matchesSearch = !query || `${m.name} ${m.category}`.toLowerCase().includes(query)
+    return (!category || m.category === category) && matchesSearch
+  })
   const lines = Object.keys(cart).map((key) => {
     if (key.startsWith('deleted-')) {
       const saved = savedItems.find((item) => `deleted-${item.id}` === key)
@@ -58,6 +65,8 @@ export default function NewOrder() {
     return !item.is_available && saved ? { ...item, name: saved.item_name, price: saved.unit_price, retainedUnavailable: true } : item
   }).filter(Boolean)
   const total = lines.reduce((sum, m) => sum + m.price * cart[m.id].qty, 0)
+  const cashAmount = Number(cashReceived) || 0
+  const changeDue = Math.max(0, cashAmount - total)
 
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.value })
   const add = (m) => setCart({ ...cart, [m.id]: { qty: (cart[m.id]?.qty || 0) + 1, notes: cart[m.id]?.notes || '' } })
@@ -68,7 +77,6 @@ export default function NewOrder() {
     else next[m.id] = { ...next[m.id], qty }
     setCart(next)
   }
-  const setNote = (m, notes) => setCart({ ...cart, [m.id]: { ...cart[m.id], notes } })
   const removeLine = (id) => setCart((current) => {
     const next = { ...current }
     delete next[id]
@@ -77,6 +85,14 @@ export default function NewOrder() {
 
   async function submit(payAndSend) {
     setError('')
+    if (payAndSend && !lines.length) {
+      setError('Add at least one item to the order.')
+      return
+    }
+    if (payAndSend && paymentMethod === 'cash' && cashAmount < total) {
+      setError('Cash received must cover the order total.')
+      return
+    }
     setBusy(true)
     try {
       const body = {
@@ -109,7 +125,7 @@ export default function NewOrder() {
 
   return (
     <>
-      <PageHeader title={id ? 'Edit Order' : 'New Order'} subtitle={id ? 'You can change this order until it is sent to the kitchen.' : 'Fill in the details, pick the items, then send it to the kitchen.'} />
+      <PageHeader title={id ? 'Edit Order' : 'New Order'} subtitle={id ? 'You can change this order until it is sent to the kitchen.' : undefined} />
       <ErrorBox message={error || menuError} />
 
       <div className="order-layout">
@@ -136,15 +152,33 @@ export default function NewOrder() {
 
           <section className="panel">
             <h2>Menu</h2>
+            <div className="menu-search">
+              <span className="menu-search-icon" aria-hidden="true"><Icon name="search" size={24} /></span>
+              <input
+                type="search"
+                className="search"
+                placeholder="Search menu"
+                aria-label="Search menu"
+                value={menuSearch}
+                onChange={(e) => setMenuSearch(e.target.value)}
+              />
+            </div>
             <div className="chips">
               <button className={!category ? 'chip on' : 'chip'} onClick={() => setCategory('')}>All</button>
               {categories.map((c) => <button key={c} className={category === c ? 'chip on' : 'chip'} onClick={() => setCategory(c)}>{c}</button>)}
             </div>
             <div className="menu-grid">
               {shown.map((m) => (
-                <button key={m.id} className="menu-item" onClick={() => add(m)}>
+                <button
+                  key={m.id}
+                  className={`menu-item${m.is_available ? '' : ' unavailable'}`}
+                  disabled={!m.is_available}
+                  onClick={() => add(m)}
+                  aria-label={m.is_available ? `Add ${m.name}` : `${m.name} unavailable`}
+                >
                   <span>{m.name}</span>
                   <strong>{peso(m.price)}</strong>
+                  {!m.is_available && <em className="menu-unavailable">Unavailable</em>}
                   {cart[m.id] && <em className="in-cart">{qty(cart[m.id].qty)}</em>}
                 </button>
               ))}
@@ -158,26 +192,61 @@ export default function NewOrder() {
             <ul className="cart-lines">
               {lines.map((m) => (
                 <li key={m.id}>
-                  <div className="cart-top">
-                    <span>{m.name}{(m.retainedUnavailable || m.archived) && <span className="muted"> (unavailable)</span>}</span>
-                    <span>{peso(m.price * cart[m.id].qty)}</span>
-                  </div>
-                  <div className="cart-controls">
+                  <div className="cart-row">
+                    <span className="cart-item-name">{m.name}{(m.retainedUnavailable || m.archived) && <span className="muted"> (unavailable)</span>}</span>
+                    <div className="cart-quantity">
                     {!m.retainedUnavailable && !m.archived && <button className="qty-btn" onClick={() => change(m, -1)} aria-label={`Remove one ${m.name}`}>−</button>}
                     <span>{qty(cart[m.id].qty)}</span>
-                    {m.retainedUnavailable || m.archived ? <button className="btn btn-quiet" onClick={() => removeLine(m.id)}>Remove unavailable item</button> : <button className="qty-btn" onClick={() => change(m, 1)} aria-label={`Add one ${m.name}`}>+</button>}
-                    {!m.retainedUnavailable && !m.archived && <input placeholder="Item note" value={cart[m.id].notes} onChange={(e) => setNote(m, e.target.value)} />}
+                    {m.retainedUnavailable || m.archived ? <button className="remove-unavailable" onClick={() => removeLine(m.id)}>Remove</button> : <button className="qty-btn" onClick={() => change(m, 1)} aria-label={`Add one ${m.name}`}>+</button>}
+                    </div>
+                    <strong className="cart-line-total">{peso(m.price * cart[m.id].qty)}</strong>
                   </div>
                 </li>
               ))}
             </ul>
           )}
           <div className="cart-total"><span>Total</span><strong>{peso(total)}</strong></div>
-          <label>Payment method
-            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}><option value="cash">Cash</option><option value="card">Card</option><option value="e_wallet">E-wallet</option></select>
-          </label>
-          <button className="btn btn-primary wide" disabled={busy} onClick={() => submit(true)}>{id ? 'Save, mark paid & send' : 'Mark paid & send to kitchen'}</button>
-          <button className="btn wide" disabled={busy} onClick={() => submit(false)}>Save draft</button>
+          <section className="payment-section" aria-label="Payment">
+            <h3>Payment method</h3>
+            <div className="payment-methods">
+              {[
+                ['cash', 'Cash'],
+                ['e_wallet', 'GCash'],
+                ['card', 'Card'],
+              ].map(([method, label]) => (
+                <button
+                  key={method}
+                  type="button"
+                  className={`payment-method${paymentMethod === method ? ' selected' : ''}`}
+                  aria-pressed={paymentMethod === method}
+                  onClick={() => setPaymentMethod(method)}
+                >
+                  <span className={`payment-method-icon ${method}`} aria-hidden="true">
+                    {method === 'cash' ? '₱' : method === 'e_wallet' ? '▯' : '▤'}
+                  </span>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {paymentMethod === 'cash' && (
+              <>
+                <label className="cash-received">Cash received
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={cashReceived}
+                    onChange={(e) => setCashReceived(e.target.value)}
+                  />
+                </label>
+                <div className="cash-change"><span>Change</span><strong>{peso(changeDue)}</strong></div>
+              </>
+            )}
+          </section>
+          <button className="btn btn-primary wide charge-btn" disabled={busy || !lines.length || (paymentMethod === 'cash' && cashAmount < total)} onClick={() => submit(true)}>
+            {busy ? 'Updating...' : <>Place Order {peso(total)} <span aria-hidden="true">↗</span></>}
+          </button>
+          <button className="btn wide" disabled={busy} onClick={() => submit(false)}>{busy ? 'Updating...' : 'Save draft'}</button>
         </aside>
       </div>
     </>

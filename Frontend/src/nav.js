@@ -4,7 +4,6 @@ export const NAV = {
     { label: 'Dashboard', to: '/dashboard', icon: 'grid' },
     { label: 'New Order', to: '/orders/new', icon: 'plus' },
     { label: 'Order List', to: '/orders', icon: 'list', end: true },
-    { label: 'Order Details', to: '/orders/details', icon: 'file' },
   ],
   kitchen: [
     { label: 'Dashboard', to: '/dashboard', icon: 'grid' },
