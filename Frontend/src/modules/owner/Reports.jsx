@@ -107,6 +107,7 @@ function BestSellingChart({ rows, days }) {
 function DailyLineChart({ rows, days }) {
   const chartRef = useRef(null)
   const [width, setWidth] = useState(700)
+  const [activeIndex, setActiveIndex] = useState(null)
   useEffect(() => {
     if (!chartRef.current) return undefined
     const observer = new ResizeObserver(([entry]) => setWidth(Math.max(320, entry.contentRect.width)))
@@ -139,6 +140,10 @@ function DailyLineChart({ rows, days }) {
     const control2Y = point.y - (next.y - previous.y) / 6
     return `${path} C ${control1X} ${control1Y}, ${control2X} ${control2Y}, ${point.x} ${point.y}`
   }, '')
+  const activePoint = activeIndex === null ? null : points[activeIndex]
+  const tooltipWidth = 174
+  const tooltipX = activePoint ? Math.min(Math.max(left, activePoint.x - tooltipWidth / 2), width - right - tooltipWidth) : 0
+  const tooltipY = activePoint ? (activePoint.y > 86 ? activePoint.y - 70 : activePoint.y + 18) : 0
 
   return (
     <section className="panel">
@@ -148,7 +153,7 @@ function DailyLineChart({ rows, days }) {
       </div>
       {rows.length === 0 ? <Empty>No served sales in this period.</Empty> : (
         <div className="report-line-wrap" ref={chartRef}>
-          <svg className="report-line-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Line graph of sales per day for the last ${days} days`}>
+          <svg className="report-line-chart" viewBox={`0 0 ${width} ${height}`} role="group" aria-label={`Line graph of sales per day for the last ${days} days`}>
             {[0, 1, 2, 3].map((step) => {
               const y = top + (plotHeight / 3) * step
               const value = max * (1 - step / 3)
@@ -160,11 +165,29 @@ function DailyLineChart({ rows, days }) {
               )
             })}
             {points.length > 1 && <path d={linePath} className="report-line-path" />}
+            {activePoint && (
+              <g className="report-line-tooltip" aria-hidden="true" pointerEvents="none">
+                <line x1={activePoint.x} x2={activePoint.x} y1={top} y2={height - bottom} className="report-line-guide" />
+                <rect x={tooltipX} y={tooltipY} width={tooltipWidth} height="56" rx="8" className="report-line-tooltip-box" />
+                <text x={tooltipX + 12} y={tooltipY + 20} className="report-line-tooltip-date">{activePoint.day}</text>
+                <text x={tooltipX + 12} y={tooltipY + 41} className="report-line-tooltip-sales">Sales: {peso(activePoint.sales)}</text>
+              </g>
+            )}
             {points.map((point, index) => (
               <g key={point.day}>
-                <circle cx={point.x} cy={point.y} r="4.5" className="report-line-point">
-                  <title>{`${point.day}: ${peso(point.sales)} from ${qty(point.orders)} orders`}</title>
-                </circle>
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  r="10"
+                  className="report-line-hit"
+                  tabIndex="0"
+                  aria-label={`${point.day}: sales ${peso(point.sales)}, ${qty(point.orders)} orders`}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onMouseLeave={() => setActiveIndex(null)}
+                  onFocus={() => setActiveIndex(index)}
+                  onBlur={() => setActiveIndex(null)}
+                />
+                <circle cx={point.x} cy={point.y} r={activeIndex === index ? '6' : '4.5'} className="report-line-point" />
                 {(index % labelStep === 0 || index === points.length - 1) && (
                   <text x={point.x} y={height - 12} textAnchor="middle" className="report-line-axis-label">
                     {new Date(`${point.day}T00:00:00`).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}

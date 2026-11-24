@@ -303,6 +303,13 @@ tr.inactive td { color: var(--muted); }
 .report-line-axis-label { fill: var(--muted); font-family: var(--font-body); font-size: 11px; }
 .report-line-path { fill: none; stroke: #9d5538; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
 .report-line-point { fill: #fffdf8; stroke: #9d5538; stroke-width: 2.5; }
+.report-line-hit { fill: transparent; cursor: crosshair; pointer-events: all; }
+.report-line-hit:focus { outline: none; }
+.report-line-hit:focus-visible { stroke: #9d5538; stroke-width: 2; }
+.report-line-guide { stroke: #9d5538; stroke-dasharray: 4 4; stroke-width: 1; opacity: .55; }
+.report-line-tooltip-box { fill: #302019; filter: drop-shadow(0 3px 6px rgb(48 32 25 / 18%)); }
+.report-line-tooltip-date { fill: #ead9bd; font-family: var(--font-body); font-size: 11px; }
+.report-line-tooltip-sales { fill: #fffdf8; font-family: var(--font-body); font-size: 13px; font-weight: 700; }
 .category-chart-layout { display: grid; grid-template-columns: 1fr; justify-items: center; gap: 20px; padding-top: 18px; }
 .category-donut { display: grid; place-items: center; width: min(100%, 210px); aspect-ratio: 1; margin: 0 auto; border-radius: 50%; }
 .category-donut-hole { display: flex; width: 62%; aspect-ratio: 1; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--panel); text-align: center; }
