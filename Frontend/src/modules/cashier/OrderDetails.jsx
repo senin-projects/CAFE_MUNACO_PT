@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../../services/api.js'
 import { useAuth } from '../../auth.jsx'
 import { useFetch } from '../../hooks.js'
@@ -17,6 +17,7 @@ const STEPS = [
 export default function OrderDetails() {
   const { id } = useParams()
   const { user } = useAuth()
+  const location = useLocation()
   const navigate = useNavigate()
   const { data: o, error, loading, reload } = useFetch(`/orders/${id}`, { poll: 15000 })
   const [actionError, setActionError] = useState('')
@@ -80,6 +81,11 @@ export default function OrderDetails() {
   return (
     <>
       <PageHeader title={<span className="order-number">{o.order_no}</span>} subtitle={`${o.customer_name} · ${ORDER_TYPES[o.order_type]}`}>
+        {user.role === 'kitchen' && (
+          <Link className="btn" to={location.state?.from === '/kitchen/history' ? '/kitchen/history' : '/kitchen/orders'}>
+            {location.state?.from === '/kitchen/history' ? 'Back to Order History' : 'Back to Orders'}
+          </Link>
+        )}
         <StatusBadge status={o.status} />
         {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'unpaid' && (
           <>

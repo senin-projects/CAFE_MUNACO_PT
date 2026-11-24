@@ -144,12 +144,14 @@ export default function MenuManagement() {
                   <td className="num">{peso(item.price)}</td>
                   <td><span className={`badge ${item.is_available ? 'stock-ok' : 'badge-cancelled'}`}>{item.is_available ? 'Available' : 'Unavailable'}</span></td>
                   <td className="menu-row-actions">
-                    <button type="button" className="icon-button" onClick={() => open(item)} aria-label={`Edit ${item.name}`} title="Edit">
-                      <Icon name="edit" size={17} />
-                    </button>
-                    <button type="button" className="icon-button icon-button-danger" onClick={() => remove(item)} aria-label={`Delete ${item.name}`} title="Delete">
-                      <Icon name="trash" size={17} />
-                    </button>
+                    <span className="menu-row-action-buttons">
+                      <button type="button" className="icon-button" onClick={() => open(item)} aria-label={`Edit ${item.name}`} title="Edit">
+                        <Icon name="edit" size={17} />
+                      </button>
+                      <button type="button" className="icon-button icon-button-danger" onClick={() => remove(item)} aria-label={`Delete ${item.name}`} title="Delete">
+                        <Icon name="trash" size={17} />
+                      </button>
+                    </span>
                   </td>
                 </tr>
               ))}

@@ -9,7 +9,7 @@ import NotificationBell from './NotificationBell.jsx'
 export default function Layout() {
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
-  useLocation() // re-render on navigation
+  const location = useLocation()
 
   return (
     <div className="shell">
@@ -25,7 +25,9 @@ export default function Layout() {
 
         <nav onClick={() => setOpen(false)}>
           {NAV[user.role].map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.end ?? false} className={({ isActive }) => (isActive ? 'active' : '')}>
+            <NavLink key={item.to} to={item.to} end={item.end ?? false} className={({ isActive }) => (
+              isActive || location.state?.from === item.to ? 'active' : ''
+            )}>
               <Icon name={item.icon} />
               {item.label}
             </NavLink>

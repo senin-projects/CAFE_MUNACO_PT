@@ -78,23 +78,29 @@ export default function KitchenQueue({ status, title, empty, history, toolbar })
       <PageHeader title={title} subtitle={history ? 'Completed orders, newest first.' : 'This page refreshes every 10 seconds.'}>{toolbar}</PageHeader>
       <ErrorBox message={error || actionError} />
       {loading && !data ? <Loading /> : data?.length === 0 ? <Empty>{empty}</Empty> : history ? (
-        <div className="table-wrap">
+        <div className="table-wrap kitchen-history-wrap">
           <table className="kitchen-history-table">
+            <colgroup>
+              <col className="kitchen-history-col-order" />
+              <col className="kitchen-history-col-customer" />
+              <col className="kitchen-history-col-type" />
+              <col className="kitchen-history-col-served" />
+            </colgroup>
             <thead>
               <tr><th>Order</th><th>Customer</th><th>Type / table</th><th>Served</th></tr>
             </thead>
             <tbody>
-              {data?.map((o) => (
+              {data.map((o) => (
                 <tr
                   key={o.id}
                   className="order-row"
                   tabIndex={0}
                   aria-label={`Open order ${o.order_no}`}
-                  onClick={() => navigate(`/orders/${o.id}`)}
+                  onClick={() => navigate(`/orders/${o.id}`, { state: { from: '/kitchen/history' } })}
                   onKeyDown={(e) => {
                     if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
                       e.preventDefault()
-                      navigate(`/orders/${o.id}`)
+                      navigate(`/orders/${o.id}`, { state: { from: '/kitchen/history' } })
                     }
                   }}
                 >
