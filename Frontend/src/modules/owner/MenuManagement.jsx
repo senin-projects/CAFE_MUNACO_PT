@@ -35,6 +35,12 @@ export default function MenuManagement() {
   const [modal, setModal] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState(BLANK)
+  const [inventoryItems, setInventoryItems] = useState([])
+  const [ingredients, setIngredients] = useState([])
+  const [ingredientSearch, setIngredientSearch] = useState('')
+  const [selectedIngredientId, setSelectedIngredientId] = useState('')
+  const [modalLoading, setModalLoading] = useState(false)
+  const [modalLoadError, setModalLoadError] = useState(false)
   const [formError, setFormError] = useState('')
   const [actionError, setActionError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -51,20 +57,68 @@ export default function MenuManagement() {
     return matchesSearch && matchesCategory && matchesAvailability
   })
 
-  const open = (item = null) => {
+  const open = async (item = null) => {
     setForm(item ? { name: item.name, category: item.category, price: String(item.price), is_available: !!item.is_available } : BLANK)
+    setIngredients([])
+    setInventoryItems([])
+    setIngredientSearch('')
+    setSelectedIngredientId('')
     setFormError('')
+    setModalLoadError(false)
     setModal(item)
     setModalOpen(true)
+    setModalLoading(true)
+    try {
+      const [inventory, menuItem] = await Promise.all([
+        api('/inventory'),
+        item ? api(`/menu/${item.id}`) : Promise.resolve(null),
+      ])
+      setInventoryItems(inventory)
+      setIngredients(menuItem?.ingredients.map((ingredient) => ({
+        ...ingredient,
+        quantity_required: String(ingredient.quantity_required),
+      })) || [])
+    } catch (err) {
+      setFormError(err.message)
+      setModalLoadError(true)
+    } finally {
+      setModalLoading(false)
+    }
   }
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
+
+  function addIngredient() {
+    const item = inventoryItems.find((ingredient) => String(ingredient.id) === selectedIngredientId)
+    if (!item || ingredients.some((ingredient) => Number(ingredient.ingredient_id) === item.id)) return
+    setIngredients((current) => [...current, {
+      ingredient_id: item.id,
+      name: item.name,
+      category: item.category,
+      current_stock: item.quantity,
+      inventory_unit: item.unit,
+      quantity_required: '',
+      unit_of_measurement: item.unit,
+    }])
+    setSelectedIngredientId('')
+    setIngredientSearch('')
+  }
 
   async function save(e) {
     e.preventDefault()
     setFormError('')
     setBusy(true)
     try {
-      await api(modal ? `/menu/${modal.id}` : '/menu', { method: modal ? 'PUT' : 'POST', body: form })
+      await api(modal ? `/menu/${modal.id}` : '/menu', {
+        method: modal ? 'PUT' : 'POST',
+        body: {
+          ...form,
+          ingredients: ingredients.map(({ ingredient_id, quantity_required, unit_of_measurement }) => ({
+            ingredient_id,
+            quantity_required: Number(quantity_required),
+            unit_of_measurement,
+          })),
+        },
+      })
       setModalOpen(false)
       reload()
     } catch (err) {
@@ -185,6 +239,74 @@ export default function MenuManagement() {
               </span>
             </label>
             <label>Price (₱) *<input type="number" min="0" max="99999999.99" step="0.01" value={form.price} onChange={set('price')} required /></label>
+            <section className="menu-ingredients">
+              <div className="menu-ingredients-heading">
+                <div>
+                  <h3>Ingredients / Recipe</h3>
+                  <p>Set the quantity needed per serving. Units follow the inventory item.</p>
+                </div>
+              </div>
+              <div className="recipe-ingredient-picker">
+                <label>Search inventory<input value={ingredientSearch} onChange={(e) => setIngredientSearch(e.target.value)} placeholder="Search ingredient name" /></label>
+                <label>Select ingredient
+                  <select value={selectedIngredientId} onChange={(e) => setSelectedIngredientId(e.target.value)}>
+                    <option value="">Choose an ingredient</option>
+                    {inventoryItems
+                      .filter((ingredient) => !ingredients.some((assigned) => Number(assigned.ingredient_id) === ingredient.id))
+                      .filter((ingredient) => `${ingredient.name} ${ingredient.category}`.toLowerCase().includes(ingredientSearch.trim().toLowerCase()))
+                      .map((ingredient) => (
+                        <option key={ingredient.id} value={ingredient.id}>
+                          {ingredient.name} — {ingredient.quantity} {ingredient.unit} available
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <button type="button" className="btn" onClick={addIngredient} disabled={!selectedIngredientId || modalLoading}>Add ingredient</button>
+              </div>
+              {modalLoading ? <p className="muted">Loading inventory and recipe…</p> : ingredients.length ? (
+                <div className="recipe-ingredient-list">
+                  {ingredients.map((ingredient) => (
+                    <div className="recipe-ingredient-row" key={ingredient.ingredient_id}>
+                      <div className="recipe-ingredient-name">
+                        <strong>{ingredient.name}</strong>
+                        <span>{ingredient.category}</span>
+                      </div>
+                      <label>Per serving
+                        <input
+                          type="number"
+                          min="0.01"
+                          max="99999999.99"
+                          step="0.01"
+                          required
+                          value={ingredient.quantity_required}
+                          onChange={(e) => setIngredients((current) => current.map((entry) => (
+                            entry.ingredient_id === ingredient.ingredient_id
+                              ? { ...entry, quantity_required: e.target.value }
+                              : entry
+                          )))}
+                        />
+                      </label>
+                      <div className="recipe-ingredient-unit">
+                        <span>Unit</span>
+                        <strong>{ingredient.unit_of_measurement}</strong>
+                      </div>
+                      <div className="recipe-ingredient-stock">
+                        <span>Available</span>
+                        <strong>{ingredient.current_stock} {ingredient.inventory_unit}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn recipe-remove"
+                        onClick={() => setIngredients((current) => current.filter((entry) => entry.ingredient_id !== ingredient.ingredient_id))}
+                        aria-label={`Remove ${ingredient.name}`}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="recipe-empty">{inventoryItems.length ? 'No ingredients assigned yet.' : 'No inventory ingredients are registered yet.'}</p>}
+            </section>
             {modal && <>
               <div className="menu-availability-control">
                 <span className={`badge ${form.is_available ? 'stock-ok' : 'badge-cancelled'}`}>
@@ -196,7 +318,7 @@ export default function MenuManagement() {
               </div>
             </>}
             <div className="form-actions">
-              <button className="btn btn-primary" disabled={busy}>{modal ? 'Save changes' : 'Add item'}</button>
+              <button className="btn btn-primary" disabled={busy || modalLoading || modalLoadError}>{modal ? 'Save changes' : 'Add item'}</button>
               <button type="button" className="btn" onClick={() => setModalOpen(false)}>Cancel</button>
             </div>
           </form>

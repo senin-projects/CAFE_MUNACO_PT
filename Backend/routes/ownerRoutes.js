@@ -5,6 +5,7 @@ import { ownerHandlers } from '../controllers/ownerController.js';
 const router = Router();
 const menu = Router();
 menu.get('/', ...ownerHandlers.getMenuHandlerChain('get', '/'));
+menu.get('/:id', ...ownerHandlers.getMenuHandlerChain('get', '/:id'));
 menu.post('/', ...ownerHandlers.getMenuHandlerChain('post', '/'));
 menu.put('/:id', ...ownerHandlers.getMenuHandlerChain('put', '/:id'));
 menu.patch('/:id/availability', ...ownerHandlers.getMenuHandlerChain('patch', '/:id/availability'));

@@ -8,7 +8,7 @@ import { logActivity } from '../services/activityService.js';
 const router = Router();
 
 const CATEGORIES = ['Seafood', 'Meat', 'Vegetables', 'Dairy', 'Dry Goods', 'Beverages', 'Other'];
-const READERS = ['inventory', 'owner'];
+const READERS = ['inventory', 'owner', 'kitchen'];
 
 const num = (v, label) => {
   const n = Number(v);
@@ -155,16 +155,33 @@ router.put(
     if (isBlank(b.unit)) throw httpError(400, 'Choose a unit.');
     const reorder_level = num(b.reorder_level, 'Reorder level');
 
-    const [[existing]] = await pool.query('SELECT id FROM inventory_items WHERE id = ?', [req.params.id]);
-    if (!existing) throw httpError(404, 'Item not found.');
-    const [dup] = await pool.query('SELECT id FROM inventory_items WHERE name = ? AND id <> ?', [name, req.params.id]);
-    if (dup.length) throw httpError(409, `"${name}" is already in the inventory list.`);
-    await pool.query(
-      'UPDATE inventory_items SET name = ?, category = ?, unit = ?, reorder_level = ?, is_fresh = ? WHERE id = ?',
-      [name, b.category, String(b.unit).trim(), reorder_level, b.is_fresh ? 1 : 0, req.params.id]
-    );
-    await logActivity(req.user.id, 'Item edited', `${name} details updated`);
-    res.json({ ok: true });
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [[existing]] = await conn.query('SELECT id, unit FROM inventory_items WHERE id = ? FOR UPDATE', [req.params.id]);
+      if (!existing) throw httpError(404, 'Item not found.');
+      if (String(b.unit).trim() !== existing.unit) {
+        const [[assigned]] = await conn.query(
+          'SELECT menu_item_id FROM menu_item_ingredients WHERE ingredient_id = ? LIMIT 1 FOR UPDATE',
+          [req.params.id]
+        );
+        if (assigned) throw httpError(409, 'This ingredient is used in menu recipes. Remove it from those recipes before changing its unit.');
+      }
+      const [dup] = await conn.query('SELECT id FROM inventory_items WHERE name = ? AND id <> ?', [name, req.params.id]);
+      if (dup.length) throw httpError(409, `"${name}" is already in the inventory list.`);
+      await conn.query(
+        'UPDATE inventory_items SET name = ?, category = ?, unit = ?, reorder_level = ?, is_fresh = ? WHERE id = ?',
+        [name, b.category, String(b.unit).trim(), reorder_level, b.is_fresh ? 1 : 0, req.params.id]
+      );
+      await logActivity(req.user.id, 'Item edited', `${name} details updated`, conn);
+      await conn.commit();
+      res.json({ ok: true });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
   })
 );
 

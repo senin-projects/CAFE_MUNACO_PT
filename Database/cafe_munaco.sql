@@ -6,7 +6,7 @@ CREATE DATABASE IF NOT EXISTS cafe_munaco CHARACTER SET utf8mb4 COLLATE utf8mb4_
 USE cafe_munaco;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS order_cancellations, notification_reads, activity_log, stock_movements, inventory_items, order_items, orders, menu_items, users;
+DROP TABLE IF EXISTS order_cancellations, notification_reads, activity_log, stock_movements, menu_item_ingredients, inventory_items, order_items, orders, menu_items, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ---------------------------------------------------------------- users
@@ -118,6 +118,17 @@ CREATE TABLE stock_movements (
   FOREIGN KEY (created_by) REFERENCES users(id),
   INDEX idx_item (item_id),
   INDEX idx_created (created_at)
+);
+
+CREATE TABLE menu_item_ingredients (
+  menu_item_id       INT NOT NULL,
+  ingredient_id      INT NOT NULL,
+  quantity_required  DECIMAL(10,2) NOT NULL,
+  unit_of_measurement VARCHAR(20) NOT NULL,
+  PRIMARY KEY (menu_item_id, ingredient_id),
+  INDEX idx_menu_item_ingredients_ingredient (ingredient_id),
+  FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE,
+  FOREIGN KEY (ingredient_id) REFERENCES inventory_items(id) ON DELETE RESTRICT
 );
 
 -- ---------------------------------------------------------------- activity log (owner monitors this)
