@@ -3,8 +3,32 @@ import { api } from '../../services/api.js'
 import { useFetch } from '../../hooks.js'
 import { Empty, ErrorBox, Loading, Modal, PageHeader } from '../../components/ui.jsx'
 import { peso } from '../../utils.js'
+import Icon from '../../components/Icon.jsx'
 
 const BLANK = { name: '', category: '', price: '', is_available: true }
+const MENU_CATEGORIES = ['coffee', 'non-coffee', 'main course', 'desserts', 'pastries', 'beverage']
+const CATEGORY_ICONS = {
+  coffee: 'cup',
+  'non-coffee': 'icedCup',
+  'main course': 'utensils',
+  desserts: 'cake',
+  pastries: 'croissant',
+  beverage: 'glass',
+}
+const LEGACY_CATEGORY_NAMES = {
+  seafood: 'main course',
+  meat: 'main course',
+  vegetables: 'main course',
+  sides: 'main course',
+  mains: 'main course',
+  packages: 'main course',
+  drinks: 'beverage',
+  beverages: 'beverage',
+}
+const categoryIcon = (category) => {
+  const key = String(category || '').trim().toLowerCase()
+  return CATEGORY_ICONS[LEGACY_CATEGORY_NAMES[key] || key] || 'list'
+}
 
 export default function MenuManagement() {
   const { data, error, loading, reload } = useFetch('/menu')
@@ -50,13 +74,20 @@ export default function MenuManagement() {
     }
   }
 
-  async function toggle(item) {
-    setActionError('')
+  async function toggleAvailability() {
+    if (!modal) return
+    const is_available = !form.is_available
+    setFormError('')
+    setBusy(true)
     try {
-      await api(`/menu/${item.id}/availability`, { method: 'PATCH', body: { is_available: !item.is_available } })
+      await api(`/menu/${modal.id}/availability`, { method: 'PATCH', body: { is_available } })
+      setForm((current) => ({ ...current, is_available }))
+      setModal((current) => ({ ...current, is_available }))
       reload()
     } catch (err) {
-      setActionError(err.message)
+      setFormError(err.message)
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -91,19 +122,34 @@ export default function MenuManagement() {
           </select>
         </div>
         <div className="table-wrap">
-          <table>
-            <thead><tr><th>Item</th><th>Category</th><th className="num">Price</th><th>Availability</th><th></th></tr></thead>
+          <table className="menu-management-table">
+            <colgroup>
+              <col className="menu-col-item" />
+              <col className="menu-col-category" />
+              <col className="menu-col-price" />
+              <col className="menu-col-availability" />
+              <col className="menu-col-actions" />
+            </colgroup>
+            <thead><tr><th>Item</th><th>Category</th><th className="num">Price</th><th>Availability</th><th aria-label="Actions"></th></tr></thead>
             <tbody>
               {filteredItems.map((item) => (
                 <tr key={item.id} className={item.is_available ? '' : 'inactive'}>
-                  <td><strong>{item.name}</strong></td>
-                  <td>{item.category}</td>
+                  <td className="menu-item-cell-wrap">
+                    <span className="menu-item-cell">
+                      <span className="menu-category-icon"><Icon name={categoryIcon(item.category)} size={19} /></span>
+                      <strong>{item.name}</strong>
+                    </span>
+                  </td>
+                  <td className="menu-category-label">{item.category}</td>
                   <td className="num">{peso(item.price)}</td>
                   <td><span className={`badge ${item.is_available ? 'stock-ok' : 'badge-cancelled'}`}>{item.is_available ? 'Available' : 'Unavailable'}</span></td>
-                  <td className="row-actions">
-                    <button className="link" onClick={() => open(item)}>Edit</button>
-                    <button className={`link ${item.is_available ? 'danger' : ''}`} onClick={() => toggle(item)}>{item.is_available ? 'Mark unavailable' : 'Make available'}</button>
-                    <button className="link danger" onClick={() => remove(item)}>Delete</button>
+                  <td className="menu-row-actions">
+                    <button type="button" className="icon-button" onClick={() => open(item)} aria-label={`Edit ${item.name}`} title="Edit">
+                      <Icon name="edit" size={17} />
+                    </button>
+                    <button type="button" className="icon-button icon-button-danger" onClick={() => remove(item)} aria-label={`Delete ${item.name}`} title="Delete">
+                      <Icon name="trash" size={17} />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -114,13 +160,39 @@ export default function MenuManagement() {
       </>}
 
       {modalOpen && (
-        <Modal title={modal ? `Edit ${modal.name}` : 'Add menu item'} onClose={() => setModalOpen(false)}>
-          <form className="form" onSubmit={save}>
+        <Modal
+          title={modal ? 'Edit a product' : 'Add a product'}
+          eyebrow={modal ? 'EDIT PRODUCT' : 'NEW PRODUCT'}
+          className="menu-product-modal"
+          showCloseButton
+          onClose={() => setModalOpen(false)}
+        >
+          <form className="form menu-product-form" onSubmit={save}>
             <ErrorBox message={formError} />
-            <label>Item name<input value={form.name} onChange={set('name')} autoFocus maxLength={100} /></label>
-            <label>Category<input value={form.category} onChange={set('category')} placeholder="Coffee, Meals, Desserts" maxLength={50} /></label>
-            <label>Price<input type="number" min="0" max="99999999.99" step="0.01" value={form.price} onChange={set('price')} /></label>
-            <label className="check"><input type="checkbox" checked={form.is_available} onChange={set('is_available')} /> Available for cashier orders</label>
+            <label className="menu-product-name">Product name *<input value={form.name} onChange={set('name')} placeholder="e.g. Cafe Latte" autoFocus maxLength={100} required /></label>
+            <label>Category
+              <span className="menu-category-select">
+                <select value={form.category} onChange={set('category')} required>
+                  <option value="" disabled>Select a category</option>
+                  {form.category && !MENU_CATEGORIES.includes(form.category) && <option value={form.category}>{form.category} (current category)</option>}
+                  {MENU_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+                </select>
+                <span className="menu-category-selected" title={form.category ? `${form.category} icon` : 'Category icon'}>
+                  <Icon name={categoryIcon(form.category)} size={18} />
+                </span>
+              </span>
+            </label>
+            <label>Price (₱) *<input type="number" min="0" max="99999999.99" step="0.01" value={form.price} onChange={set('price')} required /></label>
+            {modal && <>
+              <div className="menu-availability-control">
+                <span className={`badge ${form.is_available ? 'stock-ok' : 'badge-cancelled'}`}>
+                  {form.is_available ? 'Available' : 'Unavailable'}
+                </span>
+                <button type="button" className="btn" disabled={busy} onClick={toggleAvailability}>
+                  {form.is_available ? 'Mark unavailable' : 'Make available'}
+                </button>
+              </div>
+            </>}
             <div className="form-actions">
               <button className="btn btn-primary" disabled={busy}>{modal ? 'Save changes' : 'Add item'}</button>
               <button type="button" className="btn" onClick={() => setModalOpen(false)}>Cancel</button>

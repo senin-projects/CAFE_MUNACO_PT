@@ -8,9 +8,7 @@ export const NAV = {
   ],
   kitchen: [
     { label: 'Dashboard', to: '/dashboard', icon: 'grid' },
-    { label: 'Incoming Orders', to: '/kitchen/incoming', icon: 'inbox' },
-    { label: 'Preparing Orders', to: '/kitchen/preparing', icon: 'clock' },
-    { label: 'Ready Orders', to: '/kitchen/ready', icon: 'check' },
+    { label: 'Orders', to: '/kitchen/orders', icon: 'inbox' },
     { label: 'Order History', to: '/kitchen/history', icon: 'archive' },
     { label: 'Menu Management', to: '/menu-management', icon: 'list' },
   ],

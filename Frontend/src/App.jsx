@@ -10,6 +10,7 @@ import OrderDetails from './modules/cashier/OrderDetails.jsx'
 import OrderLookup from './modules/cashier/OrderLookup.jsx'
 import NewOrder from './modules/cashier/NewOrder.jsx'
 import KitchenQueue from './modules/kitchen/KitchenQueue.jsx'
+import KitchenOrders from './modules/kitchen/KitchenOrders.jsx'
 import InventoryList from './modules/inventory/InventoryList.jsx'
 import ItemForm from './modules/inventory/ItemForm.jsx'
 import StockForm from './modules/inventory/StockForm.jsx'
@@ -52,9 +53,10 @@ export default function App() {
         <Route path="/orders/:id/edit" element={<Only roles={['cashier']}><NewOrder /></Only>} />
 
         {/* Kitchen */}
-        <Route path="/kitchen/incoming" element={<Only roles={['kitchen']}><KitchenQueue status="sent" title="Incoming Orders" empty="No new orders. They appear here as soon as the cashier sends them." /></Only>} />
-        <Route path="/kitchen/preparing" element={<Only roles={['kitchen']}><KitchenQueue status="preparing" title="Preparing Orders" empty="Nothing is being prepared right now." /></Only>} />
-        <Route path="/kitchen/ready" element={<Only roles={['kitchen']}><KitchenQueue status="ready" title="Ready Orders" empty="No orders are waiting for service." /></Only>} />
+        <Route path="/kitchen/orders" element={<Only roles={['kitchen']}><KitchenOrders /></Only>} />
+        <Route path="/kitchen/incoming" element={<Navigate to="/kitchen/orders?status=sent" replace />} />
+        <Route path="/kitchen/preparing" element={<Navigate to="/kitchen/orders?status=preparing" replace />} />
+        <Route path="/kitchen/ready" element={<Navigate to="/kitchen/orders?status=ready" replace />} />
         <Route path="/kitchen/history" element={<Only roles={['kitchen']}><KitchenQueue status="served" title="Order History" empty="No completed orders yet." history /></Only>} />
 
         {/* Inventory */}
