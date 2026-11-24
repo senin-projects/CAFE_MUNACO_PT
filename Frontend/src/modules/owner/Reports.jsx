@@ -122,10 +122,12 @@ function DailyLineChart({ rows, days }) {
   const bottom = 42
   const plotWidth = width - left - right
   const plotHeight = height - top - bottom
+  const baseline = top + plotHeight
+  const slotWidth = rows.length ? plotWidth / rows.length : plotWidth
   const max = Math.max(1, ...rows.map((row) => Number(row.sales) || 0))
   const points = rows.map((row, index) => ({
     ...row,
-    x: left + (rows.length < 2 ? plotWidth / 2 : (index / (rows.length - 1)) * plotWidth),
+    x: left + slotWidth * (index + 0.5),
     y: top + plotHeight - ((Number(row.sales) || 0) / max) * plotHeight,
   }))
   const labelStep = Math.max(1, Math.ceil(rows.length / 8))
@@ -165,20 +167,13 @@ function DailyLineChart({ rows, days }) {
               )
             })}
             {points.length > 1 && <path d={linePath} className="report-line-path" />}
-            {activePoint && (
-              <g className="report-line-tooltip" aria-hidden="true" pointerEvents="none">
-                <line x1={activePoint.x} x2={activePoint.x} y1={top} y2={height - bottom} className="report-line-guide" />
-                <rect x={tooltipX} y={tooltipY} width={tooltipWidth} height="56" rx="8" className="report-line-tooltip-box" />
-                <text x={tooltipX + 12} y={tooltipY + 20} className="report-line-tooltip-date">{activePoint.day}</text>
-                <text x={tooltipX + 12} y={tooltipY + 41} className="report-line-tooltip-sales">Sales: {peso(activePoint.sales)}</text>
-              </g>
-            )}
             {points.map((point, index) => (
               <g key={point.day}>
-                <circle
-                  cx={point.x}
-                  cy={point.y}
-                  r="10"
+                <rect
+                  x={left + slotWidth * index}
+                  y={top}
+                  width={slotWidth}
+                  height={plotHeight}
                   className="report-line-hit"
                   tabIndex="0"
                   aria-label={`${point.day}: sales ${peso(point.sales)}, ${qty(point.orders)} orders`}
@@ -187,7 +182,7 @@ function DailyLineChart({ rows, days }) {
                   onFocus={() => setActiveIndex(index)}
                   onBlur={() => setActiveIndex(null)}
                 />
-                <circle cx={point.x} cy={point.y} r={activeIndex === index ? '6' : '4.5'} className="report-line-point" />
+                <circle cx={point.x} cy={point.y} r="3.5" className="report-line-dot" pointerEvents="none" />
                 {(index % labelStep === 0 || index === points.length - 1) && (
                   <text x={point.x} y={height - 12} textAnchor="middle" className="report-line-axis-label">
                     {new Date(`${point.day}T00:00:00`).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
@@ -195,6 +190,14 @@ function DailyLineChart({ rows, days }) {
                 )}
               </g>
             ))}
+            {activePoint && (
+              <g className="report-line-tooltip" aria-hidden="true" pointerEvents="none">
+                <line x1={activePoint.x} x2={activePoint.x} y1={top} y2={baseline} className="report-line-guide" />
+                <rect x={tooltipX} y={tooltipY} width={tooltipWidth} height="56" rx="8" className="report-line-tooltip-box" />
+                <text x={tooltipX + 12} y={tooltipY + 20} className="report-line-tooltip-date">{activePoint.day}</text>
+                <text x={tooltipX + 12} y={tooltipY + 41} className="report-line-tooltip-sales">Sales: {peso(activePoint.sales)}</text>
+              </g>
+            )}
           </svg>
         </div>
       )}
@@ -209,7 +212,7 @@ export default function Reports() {
 
   return (
     <>
-      <PageHeader title="Overview" subtitle="Sales from orders marked as served.">
+      <PageHeader title="Overview" subtitle="Sales from orders marked as served." className="report-page-head">
         <select value={days} onChange={(e) => setDays(e.target.value)} aria-label="Daily sales period">
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>

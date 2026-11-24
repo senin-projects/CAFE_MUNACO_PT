@@ -1,8 +1,8 @@
 import { STATUS_LABEL, formatNumber } from '../utils.js'
 
-export function PageHeader({ title, subtitle, children }) {
+export function PageHeader({ title, subtitle, children, className = '' }) {
   return (
-    <header className="page-head">
+    <header className={`page-head ${className}`.trim()}>
       <div>
         <h1>{title}</h1>
         {subtitle && <p className="muted">{subtitle}</p>}
