@@ -244,9 +244,9 @@ export default function NewOrder() {
             )}
           </section>
           <button className="btn btn-primary wide charge-btn" disabled={busy || !lines.length || (paymentMethod === 'cash' && cashAmount < total)} onClick={() => submit(true)}>
-            Place Order {peso(total)} <span aria-hidden="true">↗</span>
+            {busy ? 'Updating...' : <>Place Order {peso(total)} <span aria-hidden="true">↗</span></>}
           </button>
-          <button className="btn wide" disabled={busy} onClick={() => submit(false)}>Save draft</button>
+          <button className="btn wide" disabled={busy} onClick={() => submit(false)}>{busy ? 'Updating...' : 'Save draft'}</button>
         </aside>
       </div>
     </>

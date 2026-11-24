@@ -4,6 +4,7 @@ import { api } from '../../services/api.js'
 import { useAuth } from '../../auth.jsx'
 import { useFetch } from '../../hooks.js'
 import { ErrorBox, Loading, Modal, PageHeader, StatusBadge } from '../../components/ui.jsx'
+import Icon from '../../components/Icon.jsx'
 import { ORDER_TYPES, dateTime, peso, qty } from '../../utils.js'
 
 const STEPS = [
@@ -26,15 +27,21 @@ export default function OrderDetails() {
   const [cancelReason, setCancelReason] = useState('')
   const [paymentResolution, setPaymentResolution] = useState('')
   const [cancelBusy, setCancelBusy] = useState(false)
+  const [actionBusy, setActionBusy] = useState(false)
+  const [receiptOpen, setReceiptOpen] = useState(false)
   const showPrices = user.role !== 'kitchen'
 
   async function run(path, options, after) {
+    if (actionBusy) return
     setActionError('')
+    setActionBusy(true)
     try {
       await api(path, options)
       after ? after() : reload()
     } catch (e) {
       setActionError(e.message)
+    } finally {
+      setActionBusy(false)
     }
   }
   const setStatus = (status) => run(`/orders/${id}/status`, { method: 'PATCH', body: { status } })
@@ -64,7 +71,9 @@ export default function OrderDetails() {
     }
   }
   async function payAndSend() {
+    if (actionBusy) return
     setActionError('')
+    setActionBusy(true)
     try {
       await api(`/orders/${id}/payment`, { method: 'POST', body: { method: paymentMethod } })
       await api(`/orders/${id}/send`, { method: 'POST' })
@@ -72,6 +81,8 @@ export default function OrderDetails() {
     } catch (e) {
       setActionError(e.message)
       reload()
+    } finally {
+      setActionBusy(false)
     }
   }
 
@@ -94,15 +105,15 @@ export default function OrderDetails() {
           </>
         )}
         {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'unpaid' && <>
-          <select aria-label="Payment method" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}><option value="cash">Cash</option><option value="e_wallet">GCash</option><option value="card">Card</option></select>
-          <button className="btn btn-primary" onClick={payAndSend}>Pay &amp; send to kitchen</button>
+          <select aria-label="Payment method" disabled={actionBusy} value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}><option value="cash">Cash</option><option value="e_wallet">GCash</option><option value="card">Card</option></select>
+          <button className="btn btn-primary" disabled={actionBusy} onClick={payAndSend}>{actionBusy ? 'Updating...' : 'Pay & send to kitchen'}</button>
         </>}
-        {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'paid' && <button className="btn btn-primary" onClick={() => run(`/orders/${id}/send`, { method: 'POST' })}>Send to kitchen</button>}
-        {user.role === 'cashier' && o.status === 'ready' && <button className="btn btn-primary" onClick={() => setStatus('served')}>Mark as served</button>}
-        {canOwnerCancel && <button className="btn btn-danger" onClick={openCancelModal}>Cancel / void order</button>}
-        {user.role !== 'kitchen' && <button className="btn" onClick={() => window.print()}>Print receipt</button>}
-        {user.role === 'kitchen' && o.status === 'sent' && <button className="btn btn-primary" onClick={() => setStatus('preparing')}>Start preparing</button>}
-        {user.role === 'kitchen' && o.status === 'preparing' && <button className="btn btn-primary" onClick={() => setStatus('ready')}>Mark as ready</button>}
+        {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'paid' && <button className="btn btn-primary" disabled={actionBusy} onClick={() => run(`/orders/${id}/send`, { method: 'POST' })}>{actionBusy ? 'Updating...' : 'Send to kitchen'}</button>}
+        {user.role === 'cashier' && o.status === 'ready' && <button className="btn btn-primary" disabled={actionBusy} onClick={() => setStatus('served')}>{actionBusy ? 'Updating...' : 'Mark as served'}</button>}
+        {canOwnerCancel && <button className="btn btn-danger" disabled={cancelBusy} onClick={openCancelModal}>Cancel / void order</button>}
+        {user.role !== 'kitchen' && <button className="btn" onClick={() => setReceiptOpen(true)}>Print receipt</button>}
+        {user.role === 'kitchen' && o.status === 'sent' && <button className="btn btn-primary" disabled={actionBusy} onClick={() => setStatus('preparing')}>{actionBusy ? 'Updating...' : 'Start preparing'}</button>}
+        {user.role === 'kitchen' && o.status === 'preparing' && <button className="btn btn-primary" disabled={actionBusy} onClick={() => setStatus('ready')}>{actionBusy ? 'Updating...' : 'Mark as ready'}</button>}
       </PageHeader>
 
       <ErrorBox message={actionError} />
@@ -170,12 +181,50 @@ export default function OrderDetails() {
           </table>
         </div>
       </section>
-      {user.role !== 'kitchen' && <section className="receipt">
-        <h1>Cafe Munaco</h1><p>Receipt · {o.order_no}</p><p>{o.customer_name} · {ORDER_TYPES[o.order_type]}</p>
-        <ul>{o.items.map((i) => <li key={i.id}>{qty(i.quantity)} × {i.item_name}<span>{peso(i.quantity * i.unit_price)}</span></li>)}</ul>
-        <strong>Total: {peso(o.total)}</strong><p>{o.payment_status === 'paid' ? `Paid by ${o.payment_method?.replace('_', '-')}` : 'Unpaid'}</p>
-        {o.paid_at && <p>{dateTime(o.paid_at)}</p>}
-      </section>}
+      {receiptOpen && user.role !== 'kitchen' && (
+        <Modal
+          title="Receipt"
+          eyebrow={o.payment_status === 'paid' ? 'Payment complete' : 'Payment pending'}
+          className="receipt-modal"
+          showCloseButton
+          onClose={() => setReceiptOpen(false)}
+        >
+          <div className="receipt-document">
+            <header className="receipt-brand">
+              <span className="receipt-brand-icon"><Icon name="cup" size={23} /></span>
+              <div><strong>Cafe Munaco</strong><span>Madalunot, Calaca, Batangas</span></div>
+            </header>
+            <dl className="receipt-meta">
+              <div><dt>Order</dt><dd>{o.order_no}</dd></div>
+              <div><dt>Date</dt><dd>{new Date(o.paid_at || o.created_at).toLocaleString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</dd></div>
+              <div><dt>Cashier</dt><dd>{o.created_by_name}</dd></div>
+              <div><dt>Type</dt><dd>{ORDER_TYPES[o.order_type]}</dd></div>
+            </dl>
+            <table className="receipt-items">
+              <thead><tr><th>Item</th><th className="num">Qty</th><th className="num">Amount</th></tr></thead>
+              <tbody>
+                {o.items.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.item_name}</td>
+                    <td className="num">{qty(item.quantity)}</td>
+                    <td className="num">{peso(item.quantity * item.unit_price)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="receipt-totals">
+              <div><span>Subtotal</span><strong>{peso(o.total)}</strong></div>
+              <div className="receipt-total"><span>Total</span><strong>{peso(o.total)}</strong></div>
+              <div><span>{o.payment_status === 'paid' ? `Paid · ${o.payment_method?.replace('_', '-')}` : 'Payment due'}</span><strong>{o.payment_status === 'paid' ? peso(o.total) : '—'}</strong></div>
+            </div>
+            <p className="receipt-thanks">Thank you for visiting Cafe Munaco.</p>
+          </div>
+          <footer className="receipt-actions">
+            <button type="button" className="btn" onClick={() => window.print()}>Print receipt</button>
+            <Link className="btn btn-primary" to="/orders/new" onClick={() => setReceiptOpen(false)}>New sale</Link>
+          </footer>
+        </Modal>
+      )}
 
       {cancelModal && (
         <Modal title="Cancel / void order" onClose={() => setCancelModal(false)}>

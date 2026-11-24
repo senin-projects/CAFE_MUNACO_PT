@@ -45,9 +45,16 @@ router.get(
     }
 
     const direction = req.query.sort === 'oldest' ? 'ASC' : 'DESC';
+    const orderClause = req.user.role === 'kitchen' && req.query.sort === 'oldest'
+      ? `ORDER BY
+          CASE WHEN o.order_type IN ('reservation', 'advance_order') THEN 0 ELSE 1 END ASC,
+          CASE WHEN o.order_type IN ('reservation', 'advance_order') THEN COALESCE(o.scheduled_at, o.sent_at, o.created_at)
+               ELSE COALESCE(o.sent_at, o.created_at) END ASC,
+          o.id ASC`
+      : `ORDER BY COALESCE(o.sent_at, o.created_at) ${direction}, o.id ${direction}`;
     const [orders] = await pool.query(
       `${ORDER_SELECT} ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
-       ORDER BY COALESCE(o.sent_at, o.created_at) ${direction}, o.id ${direction} LIMIT 300`,
+       ${orderClause} LIMIT 300`,
       params
     );
 

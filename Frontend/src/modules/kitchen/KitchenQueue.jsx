@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../../services/api.js'
 import { useFetch } from '../../hooks.js'
 import { Empty, ErrorBox, Loading, PageHeader } from '../../components/ui.jsx'
+import Icon from '../../components/Icon.jsx'
 import { ORDER_TYPES, dateTime, timeAgo, qty } from '../../utils.js'
 
 // One screen for Incoming / Preparing / Ready / History. Only `status` changes.
@@ -10,6 +11,7 @@ export default function KitchenQueue({ status, title, empty, history, toolbar })
   const navigate = useNavigate()
   const { data, error, loading, reload } = useFetch(`/orders?status=${status}&items=1&sort=${history ? 'newest' : 'oldest'}`, { poll: 10000 })
   const [actionError, setActionError] = useState('')
+  const [updatingOrderId, setUpdatingOrderId] = useState(null)
   const [expandedOrders, setExpandedOrders] = useState({})
   const [visibleItemCounts, setVisibleItemCounts] = useState({})
   const ticketRefs = useRef(new Map())
@@ -27,6 +29,10 @@ export default function KitchenQueue({ status, title, empty, history, toolbar })
           return
         }
         const card = ticketRefs.current.get(order.id)
+        if (card?.classList.contains('reservation-ticket')) {
+          fittedCounts[order.id] = 4
+          return
+        }
         const list = card?.querySelector('.ticket-items:not(.ticket-items-measure)')
         const measureList = card?.querySelector('.ticket-items-measure')
         const more = card?.querySelector('.ticket-more')
@@ -61,13 +67,17 @@ export default function KitchenQueue({ status, title, empty, history, toolbar })
   }, [data, expandedOrders, history])
 
   async function move(order, next) {
+    if (updatingOrderId) return
     setActionError('')
+    setUpdatingOrderId(order.id)
     try {
       await api(`/orders/${order.id}/status`, { method: 'PATCH', body: { status: next } })
       reload()
     } catch (e) {
       setActionError(e.message)
       reload()
+    } finally {
+      setUpdatingOrderId(null)
     }
   }
 
@@ -93,7 +103,7 @@ export default function KitchenQueue({ status, title, empty, history, toolbar })
               {data.map((o) => (
                 <tr
                   key={o.id}
-                  className="order-row"
+                  className={`order-row${o.order_type === 'reservation' ? ' reservation-row' : ''}`}
                   tabIndex={0}
                   aria-label={`Open order ${o.order_no}`}
                   onClick={() => navigate(`/orders/${o.id}`, { state: { from: '/kitchen/history' } })}
@@ -106,7 +116,9 @@ export default function KitchenQueue({ status, title, empty, history, toolbar })
                 >
                   <td><strong>{o.order_no}</strong></td>
                   <td>{o.customer_name}</td>
-                  <td>{ORDER_TYPES[o.order_type] || o.order_type}</td>
+                  <td>{o.order_type === 'reservation'
+                    ? <span className="reservation-highlight">{ORDER_TYPES[o.order_type]}</span>
+                    : (ORDER_TYPES[o.order_type] || o.order_type)}</td>
                   <td className="muted">{dateTime(o[since])}</td>
                 </tr>
               ))}
@@ -117,7 +129,7 @@ export default function KitchenQueue({ status, title, empty, history, toolbar })
         <div className="tickets" ref={ticketGridRef}>
           {data?.map((o) => (
             <article
-              className={`ticket ticket-clickable ${o.special_requests ? 'has-request' : ''} ${expandedOrders[o.id] ? 'ticket-expanded' : ''}`}
+              className={`ticket ticket-clickable ${o.special_requests ? 'has-request' : ''} ${o.order_type === 'reservation' ? 'reservation-ticket' : ''} ${expandedOrders[o.id] ? 'ticket-expanded' : ''}`}
               key={o.id}
               ref={(element) => {
                 if (element) ticketRefs.current.set(o.id, element)
@@ -147,7 +159,20 @@ export default function KitchenQueue({ status, title, empty, history, toolbar })
                 </div>
               </header>
 
-              {o.scheduled_at && <p className="muted">{ORDER_TYPES[o.order_type]} for {dateTime(o.scheduled_at)}{o.guests ? ` · ${qty(o.guests)} guests` : ''}</p>}
+              {o.scheduled_at && (
+                o.order_type === 'reservation' ? (
+                  <div className="reservation-schedule" aria-label={`Reservation for ${dateTime(o.scheduled_at)}, ${qty(o.guests)} guests`}>
+                    <span className="reservation-calendar"><Icon name="calendar" size={16} /></span>
+                    <div className="reservation-copy">
+                      <strong>RESERVATION</strong>
+                      <span>{dateTime(o.scheduled_at)}</span>
+                    </div>
+                    {o.guests && <span className="reservation-guests">{qty(o.guests)} guests</span>}
+                  </div>
+                ) : (
+                  <p className="muted">{ORDER_TYPES[o.order_type]} for {dateTime(o.scheduled_at)}{o.guests ? ` · ${qty(o.guests)} guests` : ''}</p>
+                )
+              )}
 
               <ul className="ticket-items">
                 {o.items.slice(0, expandedOrders[o.id] ? o.items.length : (visibleItemCounts[o.id] ?? 4)).map((i) => (
@@ -179,8 +204,16 @@ export default function KitchenQueue({ status, title, empty, history, toolbar })
 
               {o.special_requests && <div className="request"><strong>Special request</strong><p>{o.special_requests}</p></div>}
 
-              {status === 'sent' && <button className="btn btn-primary wide ticket-action" onClick={() => move(o, 'preparing')}>Start preparing</button>}
-              {status === 'preparing' && <button className="btn btn-primary wide ticket-action" onClick={() => move(o, 'ready')}>Mark as ready</button>}
+              {status === 'sent' && (
+                <button className="btn btn-primary wide ticket-action" disabled={updatingOrderId !== null} onClick={() => move(o, 'preparing')}>
+                  {updatingOrderId === o.id ? 'Updating...' : 'Start preparing'}
+                </button>
+              )}
+              {status === 'preparing' && (
+                <button className="btn btn-primary wide ticket-action" disabled={updatingOrderId !== null} onClick={() => move(o, 'ready')}>
+                  {updatingOrderId === o.id ? 'Updating...' : 'Mark as ready'}
+                </button>
+              )}
               {status === 'ready' && <p className="muted ticket-waiting">Waiting for service staff to pick it up.</p>}
             </article>
           ))}
