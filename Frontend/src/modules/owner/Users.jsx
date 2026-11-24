@@ -3,6 +3,7 @@ import { api } from '../../services/api.js'
 import { useAuth } from '../../auth.jsx'
 import { useFetch } from '../../hooks.js'
 import { ErrorBox, Loading, Modal, PageHeader } from '../../components/ui.jsx'
+import Icon from '../../components/Icon.jsx'
 import { ROLE_LABEL, dateOnly } from '../../utils.js'
 
 const BLANK = { full_name: '', username: '', role: 'cashier', password: '' }
@@ -67,10 +68,20 @@ export default function Users() {
                   <td>{ROLE_LABEL[u.role]}</td>
                   <td><span className={`badge ${u.is_active ? 'stock-ok' : 'badge-cancelled'}`}>{u.is_active ? 'Active' : 'Deactivated'}</span></td>
                   <td className="muted">{dateOnly(u.created_at)}</td>
-                  <td className="row-actions">
-                    <button className="link" onClick={() => open('edit', u)}>Edit</button>
-                    <button className="link" onClick={() => open('password', u)}>Reset password</button>
-                    {u.id !== me.id && <button className="link danger" onClick={() => toggle(u)}>{u.is_active ? 'Deactivate' : 'Reactivate'}</button>}
+                  <td className="user-row-actions">
+                    <button className="icon-button" onClick={() => open('edit', u)} aria-label={`Edit ${u.full_name}`} title="Edit">
+                      <Icon name="edit" size={17} />
+                    </button>
+                    {u.id !== me.id && (
+                      <button
+                        className={`icon-button ${u.is_active ? 'icon-button-danger' : ''}`}
+                        onClick={() => toggle(u)}
+                        aria-label={`${u.is_active ? 'Deactivate' : 'Reactivate'} ${u.full_name}`}
+                        title={u.is_active ? 'Deactivate' : 'Reactivate'}
+                      >
+                        <Icon name={u.is_active ? 'userX' : 'userCheck'} size={17} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -98,6 +109,7 @@ export default function Users() {
             {modal.mode !== 'edit' && <label>{modal.mode === 'add' ? 'Password' : 'New password'}<input type="text" value={form.password} onChange={set('password')} autoComplete="off" /></label>}
             <div className="form-actions">
               <button className="btn btn-primary">{modal.mode === 'add' ? 'Add employee' : 'Save'}</button>
+              {modal.mode === 'edit' && <button type="button" className="btn" onClick={() => open('password', modal.user)}>Reset password</button>}
               <button type="button" className="btn" onClick={() => setModal(null)}>Cancel</button>
             </div>
           </form>

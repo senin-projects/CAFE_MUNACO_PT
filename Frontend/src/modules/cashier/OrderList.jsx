@@ -60,18 +60,19 @@ export default function OrderList() {
                     }
                   }}
                 >
-                  <td><strong>{o.order_no}</strong></td>
-                  <td>{o.customer_name}</td>
-                  <td>{qty(o.item_count)}</td>
-                  <td className="num">{peso(o.total)}</td>
-                  <td><StatusBadge status={o.status} /></td>
-                  <td className="muted">{dateTime(o.created_at)}</td>
+                  <td data-label="Order"><strong>{o.order_no}</strong></td>
+                  <td data-label="Customer">{o.customer_name}</td>
+                  <td data-label="Items">{qty(o.item_count)}</td>
+                  <td className="num" data-label="Total">{peso(o.total)}</td>
+                  <td data-label="Status"><StatusBadge status={o.status} /></td>
+                  <td className="muted" data-label="Created">{dateTime(o.created_at)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
     </>
   )
 }

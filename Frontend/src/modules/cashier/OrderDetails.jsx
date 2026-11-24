@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { api } from '../../services/api.js'
 import { useAuth } from '../../auth.jsx'
 import { useFetch } from '../../hooks.js'
@@ -14,19 +14,15 @@ const STEPS = [
   ['ready_at', 'Ready'],
   ['served_at', 'Served'],
 ]
+const SHORT_STEP_LABEL = { created_at: 'Created', sent_at: 'Sent', preparing_at: 'Prep', ready_at: 'Ready', served_at: 'Served', cancelled: 'Cancel' }
 
 export default function OrderDetails() {
   const { id } = useParams()
   const { user } = useAuth()
   const location = useLocation()
-  const navigate = useNavigate()
   const { data: o, error, loading, reload } = useFetch(`/orders/${id}`, { poll: 15000 })
   const [actionError, setActionError] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
-  const [cancelModal, setCancelModal] = useState(false)
-  const [cancelReason, setCancelReason] = useState('')
-  const [paymentResolution, setPaymentResolution] = useState('')
-  const [cancelBusy, setCancelBusy] = useState(false)
   const [actionBusy, setActionBusy] = useState(false)
   const [receiptOpen, setReceiptOpen] = useState(false)
   const showPrices = user.role !== 'kitchen'
@@ -45,31 +41,6 @@ export default function OrderDetails() {
     }
   }
   const setStatus = (status) => run(`/orders/${id}/status`, { method: 'PATCH', body: { status } })
-  const canOwnerCancel = user.role === 'owner' && ['pending', 'sent', 'preparing', 'ready'].includes(o?.status)
-
-  function openCancelModal() {
-    setCancelReason('')
-    setPaymentResolution(o.payment_status === 'paid' ? '' : 'not_applicable')
-    setCancelModal(true)
-  }
-
-  async function cancelAsOwner(e) {
-    e.preventDefault()
-    setActionError('')
-    setCancelBusy(true)
-    try {
-      await api(`/orders/${id}/cancel`, {
-        method: 'POST',
-        body: { reason: cancelReason, payment_resolution: paymentResolution },
-      })
-      setCancelModal(false)
-      reload()
-    } catch (err) {
-      setActionError(err.message)
-    } finally {
-      setCancelBusy(false)
-    }
-  }
   async function payAndSend() {
     if (actionBusy) return
     setActionError('')
@@ -89,9 +60,14 @@ export default function OrderDetails() {
   if (loading && !o) return <Loading />
   if (!o) return <ErrorBox message={error || 'Order not found.'} />
 
+  const progressSteps = [
+    ...STEPS.map(([key, label]) => ({ key, label, at: o[key] })),
+    ...(o.status === 'cancelled' ? [{ key: 'cancelled', label: 'Cancelled', at: o.cancellation?.created_at }] : []),
+  ]
+
   return (
     <>
-      <PageHeader title={<span className="order-number">{o.order_no}</span>} subtitle={`${o.customer_name} · ${ORDER_TYPES[o.order_type]}`}>
+      <PageHeader title={<span className="order-number">{o.order_no}</span>} subtitle={ORDER_TYPES[o.order_type]}>
         {user.role === 'kitchen' && (
           <Link className="btn" to={location.state?.from === '/kitchen/history' ? '/kitchen/history' : '/kitchen/orders'}>
             {location.state?.from === '/kitchen/history' ? 'Back to Order History' : 'Back to Orders'}
@@ -99,10 +75,7 @@ export default function OrderDetails() {
         )}
         <StatusBadge status={o.status} />
         {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'unpaid' && (
-          <>
-            <Link className="btn" to={`/orders/${o.id}/edit`}>Edit order</Link>
-            <button className="btn btn-danger" onClick={() => window.confirm('Cancel this order?') && run(`/orders/${id}/cancel`, { method: 'POST' }, () => navigate('/orders'))}>Cancel order</button>
-          </>
+          <Link className="btn" to={`/orders/${o.id}/edit`}>Edit order</Link>
         )}
         {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'unpaid' && <>
           <select aria-label="Payment method" disabled={actionBusy} value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}><option value="cash">Cash</option><option value="e_wallet">GCash</option><option value="card">Card</option></select>
@@ -110,74 +83,87 @@ export default function OrderDetails() {
         </>}
         {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'paid' && <button className="btn btn-primary" disabled={actionBusy} onClick={() => run(`/orders/${id}/send`, { method: 'POST' })}>{actionBusy ? 'Updating...' : 'Send to kitchen'}</button>}
         {user.role === 'cashier' && o.status === 'ready' && <button className="btn btn-primary" disabled={actionBusy} onClick={() => setStatus('served')}>{actionBusy ? 'Updating...' : 'Mark as served'}</button>}
-        {canOwnerCancel && <button className="btn btn-danger" disabled={cancelBusy} onClick={openCancelModal}>Cancel / void order</button>}
         {user.role !== 'kitchen' && <button className="btn" onClick={() => setReceiptOpen(true)}>Print receipt</button>}
+        {user.role !== 'kitchen' && (
+          <Link className="icon-button" to="/orders" aria-label="Back to Orders" title="Back to Orders">
+            <Icon name="arrowLeft" size={18} />
+          </Link>
+        )}
         {user.role === 'kitchen' && o.status === 'sent' && <button className="btn btn-primary" disabled={actionBusy} onClick={() => setStatus('preparing')}>{actionBusy ? 'Updating...' : 'Start preparing'}</button>}
         {user.role === 'kitchen' && o.status === 'preparing' && <button className="btn btn-primary" disabled={actionBusy} onClick={() => setStatus('ready')}>{actionBusy ? 'Updating...' : 'Mark as ready'}</button>}
       </PageHeader>
 
       <ErrorBox message={actionError} />
       {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'paid' && <p className="muted">This draft is paid and locked. Send it to the kitchen to continue.</p>}
-      {o.special_requests && (
-        <div className="request"><strong>Special requests</strong><p>{o.special_requests}</p></div>
-      )}
-      {o.status === 'cancelled' && (
-        <div className="request">
-          <strong>Cancellation details</strong>
-          <p>{o.cancellation?.reason || 'This order was cancelled before cancellation details were recorded.'}</p>
-          {o.cancellation && <p className="muted">Cancelled by {o.cancellation.cancelled_by_name} · {dateTime(o.cancellation.created_at)}</p>}
-          {o.payment_status === 'paid' && o.cancellation && (
-            <p>Payment outcome: {o.cancellation.payment_resolution === 'refunded' ? 'Refunded' : 'Not refunded'}</p>
-          )}
+
+      <section className="panel order-progress-panel">
+        <h2>Progress</h2>
+        <ol className="timeline order-timeline" style={{ gridTemplateColumns: `repeat(${progressSteps.length}, minmax(0, 1fr))` }}>
+          {progressSteps.map(({ key, label, at }) => (
+            <li key={key} className={key === 'cancelled' ? 'cancelled-step' : at ? 'done' : ''}>
+              <span className="order-progress-label"><span className="order-progress-label-full">{label}</span><span className="order-progress-label-short">{SHORT_STEP_LABEL[key]}</span></span>
+              <span className="muted">
+                {at ? <><span className="order-progress-date-full">{dateTime(at)}</span><span className="order-progress-date-short">{new Date(at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</span></> : key === 'cancelled' ? '—' : 'Waiting'}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="panel order-info-panel">
+        <h2>Customer & order information</h2>
+        <div className="order-customer-summary">
+          <div><span className="muted">Customer</span><strong>{o.customer_name}</strong></div>
+          <span className="badge">{ORDER_TYPES[o.order_type]}</span>
         </div>
-      )}
+        <dl className="facts order-info-facts">
+          {o.table_no && <div><dt>Table / area</dt><dd>{o.table_no}</dd></div>}
+          {o.guests && <div><dt>Guests</dt><dd>{qty(o.guests)}</dd></div>}
+          {o.scheduled_at && <div><dt>Scheduled for</dt><dd>{dateTime(o.scheduled_at)}</dd></div>}
+          <div><dt>Taken by</dt><dd>{o.created_by_name}</dd></div>
+          {o.prepared_by_name && <div><dt>Prepared by</dt><dd>{o.prepared_by_name}</dd></div>}
+          {user.role !== 'kitchen' && <div><dt>Payment</dt><dd>{o.payment_status === 'paid' ? `Paid · ${o.payment_method?.replace('_', '-')}` : 'Unpaid'}</dd></div>}
+        </dl>
+        {o.special_requests && (
+          <details className="order-extra-note">
+            <summary>Special requests</summary>
+            <p>{o.special_requests}</p>
+          </details>
+        )}
+        {o.status === 'cancelled' && (
+          <details className="order-extra-note">
+            <summary>Cancellation details</summary>
+            <p>{o.cancellation?.reason || 'This order was cancelled before cancellation details were recorded.'}</p>
+            {o.cancellation && <p className="muted">Cancelled by {o.cancellation.cancelled_by_name} · {dateTime(o.cancellation.created_at)}</p>}
+            {o.payment_status === 'paid' && o.cancellation && (
+              <p>Payment outcome: {o.cancellation.payment_resolution === 'refunded' ? 'Refunded' : 'Not refunded'}</p>
+            )}
+          </details>
+        )}
+      </section>
 
-      <div className="grid-2">
-        <section className="panel">
-          <h2>Order information</h2>
-          <dl className="facts">
-            <dt>Customer</dt><dd>{o.customer_name}</dd>
-            <dt>Type</dt><dd>{ORDER_TYPES[o.order_type]}</dd>
-            {o.table_no && <><dt>Table / area</dt><dd>{o.table_no}</dd></>}
-            {o.guests && <><dt>Guests</dt><dd>{qty(o.guests)}</dd></>}
-            {o.scheduled_at && <><dt>Scheduled for</dt><dd>{dateTime(o.scheduled_at)}</dd></>}
-            <dt>Taken by</dt><dd>{o.created_by_name}</dd>
-            {o.prepared_by_name && <><dt>Prepared by</dt><dd>{o.prepared_by_name}</dd></>}
-            {user.role !== 'kitchen' && <><dt>Payment</dt><dd>{o.payment_status === 'paid' ? `Paid · ${o.payment_method?.replace('_', '-')}` : 'Unpaid'}</dd></>}
-          </dl>
-        </section>
-
-        <section className="panel">
-          <h2>Progress</h2>
-          <ol className="timeline">
-            {STEPS.map(([key, label]) => (
-              <li key={key} className={o[key] ? 'done' : ''}>
-                <span>{label}</span>
-                <span className="muted">{o[key] ? dateTime(o[key]) : 'Waiting'}</span>
-              </li>
-            ))}
-          </ol>
-          {o.status === 'cancelled' && <p className="muted">This order was cancelled.</p>}
-        </section>
-      </div>
-
-      <section className="panel">
-        <h2>Items</h2>
+      <section className="panel order-items-panel">
+        <header className="order-items-heading">
+          <div>
+            <h2>Order items</h2>
+            <span className="muted">{qty(o.items.reduce((sum, item) => sum + Number(item.quantity), 0))} items</span>
+          </div>
+          {showPrices && <div className="order-items-total"><span className="muted">Order total</span><strong>{peso(o.total)}</strong></div>}
+        </header>
         <div className="table-wrap flat">
-          <table>
+          <table className={`order-items-table ${showPrices ? 'with-prices' : 'kitchen-view'}`}>
             <thead>
-              <tr><th>Item</th><th className="num">Qty</th>{showPrices && <><th className="num">Price</th><th className="num">Amount</th></>}</tr>
+              <tr><th>Item</th><th className="num">Qty</th>{showPrices && <><th className="num">Unit price</th><th className="num">Subtotal</th></>}</tr>
             </thead>
             <tbody>
               {o.items.map((i) => (
                 <tr key={i.id}>
-                  <td>{i.item_name}{i.notes && <div className="note">{i.notes}</div>}</td>
+                  <td><strong className="order-item-name">{i.item_name}</strong>{i.notes && <div className="note">{i.notes}</div>}</td>
                   <td className="num">{qty(i.quantity)}</td>
                   {showPrices && <><td className="num">{peso(i.unit_price)}</td><td className="num">{peso(i.quantity * i.unit_price)}</td></>}
                 </tr>
               ))}
             </tbody>
-            {showPrices && <tfoot><tr><td colSpan="3">Total</td><td className="num"><strong>{peso(o.total)}</strong></td></tr></tfoot>}
           </table>
         </div>
       </section>
@@ -226,29 +212,6 @@ export default function OrderDetails() {
         </Modal>
       )}
 
-      {cancelModal && (
-        <Modal title="Cancel / void order" onClose={() => setCancelModal(false)}>
-          <form className="form" onSubmit={cancelAsOwner}>
-            <p className="muted">This will cancel the order and notify the kitchen if it was sent for preparation.</p>
-            <label>Reason for cancellation
-              <textarea rows="3" maxLength="500" required value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
-            </label>
-            {o.payment_status === 'paid' && (
-              <label>Payment outcome
-                <select required value={paymentResolution} onChange={(e) => setPaymentResolution(e.target.value)}>
-                  <option value="">Choose an outcome</option>
-                  <option value="refunded">Refunded to customer</option>
-                  <option value="not_refunded">Not refunded / settled separately</option>
-                </select>
-              </label>
-            )}
-            <div className="form-actions">
-              <button className="btn btn-danger" disabled={cancelBusy}>{cancelBusy ? 'Cancelling…' : 'Confirm cancellation'}</button>
-              <button type="button" className="btn" disabled={cancelBusy} onClick={() => setCancelModal(false)}>Keep order</button>
-            </div>
-          </form>
-        </Modal>
-      )}
     </>
   )
 }
