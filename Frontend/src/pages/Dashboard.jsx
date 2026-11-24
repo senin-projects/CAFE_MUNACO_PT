@@ -3,6 +3,7 @@ import { useAuth } from '../auth.jsx'
 import { useFetch } from '../hooks.js'
 import { Empty, ErrorBox, Loading, PageHeader, StatCard, StatusBadge } from '../components/ui.jsx'
 import { ORDER_TYPES, STATUS_LABEL, dateTime, peso, qty, timeAgo } from '../utils.js'
+import KitchenDashboard from '../modules/kitchen/KitchenDashboard.jsx'
 
 const greeting = () => {
   const h = new Date().getHours()
@@ -17,7 +18,9 @@ export default function Dashboard() {
     <>
       <PageHeader title={`${greeting()}, ${user.full_name.split(' ')[0]}`} subtitle={new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} />
       <ErrorBox message={error} />
-      {loading && !data ? <Loading /> : data && <Body role={user.role} d={data} />}
+      {loading && !data ? <Loading /> : data && (
+        user.role === 'kitchen' ? <KitchenDashboard data={data} /> : <Body role={user.role} d={data} />
+      )}
     </>
   )
 }
@@ -76,31 +79,6 @@ function Body({ role, d }) {
             </ul>
           </section>
         </div>
-      </>
-    )
-
-  if (role === 'kitchen')
-    return (
-      <>
-        <div className="stats">
-          <StatCard label="Waiting to start" value={s.incoming} tone={s.incoming ? 'warn' : ''} />
-          <StatCard label="Being prepared" value={s.preparing} />
-          <StatCard label="Ready for service" value={s.ready} />
-          <StatCard label="Served today" value={s.served_today} />
-        </div>
-        <section className="panel">
-          <h2>Oldest orders waiting</h2>
-          {d.waiting.length === 0 ? <Empty>No orders are waiting.</Empty> : (
-            <ul className="rows">
-              {d.waiting.map((o) => (
-                <li key={o.id} {...orderRowProps(o.id, o.order_no)}>
-                  <Link to={`/orders/${o.id}`}><strong>{o.order_no}</strong> {o.customer_name}</Link>
-                  <span className="muted">{o.table_no || ORDER_TYPES[o.order_type]} · sent {timeAgo(o.sent_at)}{o.special_requests ? ' · has special request' : ''}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
       </>
     )
 
