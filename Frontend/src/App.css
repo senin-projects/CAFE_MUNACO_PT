@@ -110,6 +110,7 @@ input.search { width: 100%; }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid #eee4d9; vertical-align: top; white-space: nowrap; }
 td:has(.note) { white-space: normal; }
+.kitchen-history-table td { white-space: normal; }
 th { font-weight: 600; color: var(--muted); font-size: 0.85rem; background: #f8f2e9; }
 tr:last-child td { border-bottom: 0; }
 .num { text-align: right; }

@@ -28,7 +28,37 @@ export default function KitchenQueue({ status, title, empty, history }) {
     <>
       <PageHeader title={title} subtitle={history ? 'Completed orders, newest first.' : 'This page refreshes every 10 seconds.'} />
       <ErrorBox message={error || actionError} />
-      {loading && !data ? <Loading /> : data?.length === 0 ? <Empty>{empty}</Empty> : (
+      {loading && !data ? <Loading /> : data?.length === 0 ? <Empty>{empty}</Empty> : history ? (
+        <div className="table-wrap">
+          <table className="kitchen-history-table">
+            <thead>
+              <tr><th>Order</th><th>Customer</th><th>Type / table</th><th>Served</th></tr>
+            </thead>
+            <tbody>
+              {data?.map((o) => (
+                <tr
+                  key={o.id}
+                  className="order-row"
+                  tabIndex={0}
+                  aria-label={`Open order ${o.order_no}`}
+                  onClick={() => navigate(`/orders/${o.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault()
+                      navigate(`/orders/${o.id}`)
+                    }
+                  }}
+                >
+                  <td><strong>{o.order_no}</strong></td>
+                  <td>{o.customer_name}</td>
+                  <td>{o.table_no || ORDER_TYPES[o.order_type]}</td>
+                  <td className="muted">{dateTime(o[since])}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
         <div className="tickets">
           {data?.map((o) => (
             <article

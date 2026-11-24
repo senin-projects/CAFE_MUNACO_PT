@@ -12,6 +12,7 @@ export const NAV = {
     { label: 'Preparing Orders', to: '/kitchen/preparing', icon: 'clock' },
     { label: 'Ready Orders', to: '/kitchen/ready', icon: 'check' },
     { label: 'Order History', to: '/kitchen/history', icon: 'archive' },
+    { label: 'Menu Management', to: '/menu-management', icon: 'list' },
   ],
   inventory: [
     { label: 'Dashboard', to: '/dashboard', icon: 'grid' },

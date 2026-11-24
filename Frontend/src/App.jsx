@@ -70,7 +70,7 @@ export default function App() {
         <Route path="/inventory-overview" element={<Only roles={['owner']}><InventoryList readOnly /></Only>} />
         <Route path="/reports" element={<Only roles={['owner']}><Reports /></Only>} />
         <Route path="/users" element={<Only roles={['owner']}><Users /></Only>} />
-        <Route path="/menu-management" element={<Only roles={['owner']}><MenuManagement /></Only>} />
+        <Route path="/menu-management" element={<Only roles={['owner', 'kitchen']}><MenuManagement /></Only>} />
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>

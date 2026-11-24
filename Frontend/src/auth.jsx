@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { api, getToken, setToken } from './services/api.js'
+import { loginRequest } from './services/login.js'
 
 const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -23,7 +24,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = useCallback(async (username, password) => {
-    const data = await api('/auth/login', { method: 'POST', body: { username, password } })
+    const data = await loginRequest(username, password)
     setToken(data.token)
     setUser(data.user)
     return data.user

@@ -10,7 +10,7 @@ For an existing database, also apply `Database/migrations/2026-11-18_add_order_c
 cd Backend
 copy .env.example .env     (Mac/Linux: cp .env.example .env)
 npm install
-npm run dev
+node app.js
 ```
 Expected: `Cafe Munaco API running on http://localhost:5000`
 

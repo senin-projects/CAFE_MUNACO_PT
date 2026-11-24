@@ -33,7 +33,7 @@ router.get(
 
 router.post(
   '/',
-  requireRole('owner'),
+  requireRole('owner', 'kitchen'),
   wrap(async (req, res) => {
     const { name, category, price, is_available } = validateMenuItem(req.body);
     const [result] = await pool.query(
@@ -47,7 +47,7 @@ router.post(
 
 router.put(
   '/:id',
-  requireRole('owner'),
+  requireRole('owner', 'kitchen'),
   wrap(async (req, res) => {
     const { name, category, price, is_available } = validateMenuItem(req.body);
     const [[existing]] = await pool.query('SELECT id FROM menu_items WHERE id = ?', [req.params.id]);
@@ -63,7 +63,7 @@ router.put(
 
 router.patch(
   '/:id/availability',
-  requireRole('owner'),
+  requireRole('owner', 'kitchen'),
   wrap(async (req, res) => {
     if (typeof req.body?.is_available !== 'boolean') throw httpError(400, 'Choose whether the item is available.');
     await pool.query('UPDATE menu_items SET is_available = ? WHERE id = ?', [req.body.is_available ? 1 : 0, req.params.id]);
@@ -76,7 +76,7 @@ router.patch(
 
 router.delete(
   '/:id',
-  requireRole('owner'),
+  requireRole('owner', 'kitchen'),
   wrap(async (req, res) => {
     const [[item]] = await pool.query('SELECT name FROM menu_items WHERE id = ?', [req.params.id]);
     if (!item) throw httpError(404, 'Menu item not found.');
