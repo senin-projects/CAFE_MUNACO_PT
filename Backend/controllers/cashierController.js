@@ -101,7 +101,7 @@ router.post(
   requireRole('cashier'),
   wrap(async (req, res) => {
     const method = String(req.body?.method || '');
-    if (!['cash', 'card', 'e_wallet'].includes(method)) throw httpError(400, 'Choose cash, card, or e-wallet.');
+    if (!['cash', 'card', 'e_wallet'].includes(method)) throw httpError(400, 'Choose cash, card, or GCash.');
     const [result] = await pool.query(
       "UPDATE orders SET payment_status = 'paid', payment_method = ?, paid_at = NOW() WHERE id = ? AND status = 'pending' AND payment_status = 'unpaid'",
       [method, req.params.id]

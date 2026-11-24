@@ -75,7 +75,7 @@ export default function KitchenQueue({ status, title, empty, history, toolbar })
 
   return (
     <>
-      <PageHeader title={title} subtitle={history ? 'Completed orders, newest first.' : 'This page refreshes every 10 seconds.'}>{toolbar}</PageHeader>
+      <PageHeader title={title}>{toolbar}</PageHeader>
       <ErrorBox message={error || actionError} />
       {loading && !data ? <Loading /> : data?.length === 0 ? <Empty>{empty}</Empty> : history ? (
         <div className="table-wrap kitchen-history-wrap">
@@ -87,7 +87,7 @@ export default function KitchenQueue({ status, title, empty, history, toolbar })
               <col className="kitchen-history-col-served" />
             </colgroup>
             <thead>
-              <tr><th>Order</th><th>Customer</th><th>Type / table</th><th>Served</th></tr>
+              <tr><th>Order</th><th>Customer</th><th>Order Type</th><th>Served</th></tr>
             </thead>
             <tbody>
               {data.map((o) => (
@@ -106,7 +106,7 @@ export default function KitchenQueue({ status, title, empty, history, toolbar })
                 >
                   <td><strong>{o.order_no}</strong></td>
                   <td>{o.customer_name}</td>
-                  <td>{o.table_no || ORDER_TYPES[o.order_type]}</td>
+                  <td>{ORDER_TYPES[o.order_type] || o.order_type}</td>
                   <td className="muted">{dateTime(o[since])}</td>
                 </tr>
               ))}

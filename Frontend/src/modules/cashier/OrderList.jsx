@@ -19,7 +19,7 @@ export default function OrderList() {
     <>
       <PageHeader
         title={user.role === 'owner' ? 'Orders' : 'Order List'}
-        subtitle={user.role === 'owner' ? 'Every order from every cashier. View only.' : 'Updates by itself, so you can see when an order is ready.'}
+        subtitle={user.role === 'owner' ? 'Every order from every cashier. View only.' : undefined}
       >
         {user.role === 'cashier' && <Link className="btn btn-primary" to="/orders/new">New order</Link>}
       </PageHeader>
@@ -40,10 +40,10 @@ export default function OrderList() {
       {loading && !data ? <Loading /> : data?.length === 0 ? (
         <Empty>No orders found. {user.role === 'cashier' && 'Create one with “New order”.'}</Empty>
       ) : (
-        <div className="table-wrap">
-          <table>
+        <div className="table-wrap orders-table-wrap">
+          <table className="orders-table">
             <thead>
-              <tr><th>Order</th><th>Customer</th><th>Type</th><th>Items</th><th className="num">Total</th><th>Status</th><th>Created</th><th></th></tr>
+              <tr><th>Order</th><th>Customer</th><th>Items</th><th className="num">Total</th><th>Status</th><th>Created</th></tr>
             </thead>
             <tbody>
               {data?.map((o) => (
@@ -51,7 +51,7 @@ export default function OrderList() {
                   key={o.id}
                   className="order-row"
                   tabIndex={0}
-                  aria-label={`Open order ${o.order_no}`}
+                  aria-label={`View order ${o.order_no}`}
                   onClick={() => navigate(`/orders/${o.id}`)}
                   onKeyDown={(e) => {
                     if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
@@ -61,13 +61,11 @@ export default function OrderList() {
                   }}
                 >
                   <td><strong>{o.order_no}</strong></td>
-                  <td>{o.customer_name}{o.table_no && <span className="muted"> · {o.table_no}</span>}</td>
-                  <td>{ORDER_TYPES[o.order_type]}</td>
+                  <td>{o.customer_name}</td>
                   <td>{qty(o.item_count)}</td>
                   <td className="num">{peso(o.total)}</td>
                   <td><StatusBadge status={o.status} /></td>
                   <td className="muted">{dateTime(o.created_at)}</td>
-                  <td><Link className="link" to={`/orders/${o.id}`}>Open</Link></td>
                 </tr>
               ))}
             </tbody>

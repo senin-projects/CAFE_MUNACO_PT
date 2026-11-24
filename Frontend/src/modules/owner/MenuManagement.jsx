@@ -104,7 +104,7 @@ export default function MenuManagement() {
 
   return (
     <>
-      <PageHeader title="Menu Management" subtitle="Add and update items customers can order. Inventory supplies are managed separately.">
+      <PageHeader title="Menu Management">
         <button className="btn btn-primary" onClick={() => open()}>Add menu item</button>
       </PageHeader>
       <ErrorBox message={error || actionError} />

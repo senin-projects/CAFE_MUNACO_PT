@@ -94,7 +94,7 @@ export default function OrderDetails() {
           </>
         )}
         {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'unpaid' && <>
-          <select aria-label="Payment method" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}><option value="cash">Cash</option><option value="card">Card</option><option value="e_wallet">E-wallet</option></select>
+          <select aria-label="Payment method" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}><option value="cash">Cash</option><option value="e_wallet">GCash</option><option value="card">Card</option></select>
           <button className="btn btn-primary" onClick={payAndSend}>Pay &amp; send to kitchen</button>
         </>}
         {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'paid' && <button className="btn btn-primary" onClick={() => run(`/orders/${id}/send`, { method: 'POST' })}>Send to kitchen</button>}
@@ -107,10 +107,6 @@ export default function OrderDetails() {
 
       <ErrorBox message={actionError} />
       {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'paid' && <p className="muted">This draft is paid and locked. Send it to the kitchen to continue.</p>}
-      {user.role === 'cashier' && o.status !== 'pending' && o.status !== 'cancelled' && (
-        <p className="muted">This order is already with the kitchen, so it can no longer be edited.</p>
-      )}
-
       {o.special_requests && (
         <div className="request"><strong>Special requests</strong><p>{o.special_requests}</p></div>
       )}

@@ -39,7 +39,7 @@ router.get(
 
     if (role === 'kitchen') {
       const [orders] = await pool.query(
-        "SELECT id, order_no, customer_name, sent_at FROM orders WHERE status = 'sent' ORDER BY sent_at ASC LIMIT 50"
+        "SELECT id, order_no, customer_name, sent_at FROM orders WHERE status = 'sent' ORDER BY sent_at DESC LIMIT 50"
       );
       orders.forEach((o) => notes.push({
         id: `sent-${o.id}`,

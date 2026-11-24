@@ -28,10 +28,10 @@ owner / owner123 · cashier1 / cashier123 · kitchen1 / kitchen123 · inventory1
 ## Who edits what
 | Member | Folder |
 |---|---|
-| Domingo Yhuan (cashier) | Frontend/src/modules/cashier |
+| Domingo Yhuan (owner) | Frontend/src/modules/cashier |
 | Zenin Mae Jalique (kitchen) | Frontend/src/modules/kitchen |
 | Gwyneth Marquinez (inventory) | Frontend/src/modules/inventory |
-| John Lloyd Bueno (owner) | Frontend/src/modules/owner |
+| John Lloyd Bueno (cashier) | Frontend/src/modules/owner |
 
 Shared (ask the group first): App.jsx, nav.js, auth.jsx, hooks.js, utils.js, components/, pages/, services/api.js,
 and in Backend: index.js, auth.js, utils.js, config/, middleware/, routes/, Database/.
