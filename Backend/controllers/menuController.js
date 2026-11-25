@@ -4,6 +4,7 @@ import { pool } from '../config/db.js';
 import { requireRole } from '../middleware/auth.js';
 import { wrap, httpError } from '../utils/http.js';
 import { logActivity } from '../services/activityService.js';
+import { areUnitsCompatible } from '../../Shared/units.js';
 
 const router = Router();
 
@@ -52,8 +53,8 @@ async function saveRecipe(conn, menuItemId, ingredients) {
   if (inventory.length !== ids.length) throw httpError(400, 'One or more selected ingredients no longer exist in inventory.');
   for (const ingredient of ingredients) {
     const item = inventoryById.get(ingredient.ingredient_id);
-    if (ingredient.unit_of_measurement !== item.unit) {
-      throw httpError(409, `The unit for inventory ingredient ${ingredient.ingredient_id} changed. Refresh and try again.`);
+    if (!areUnitsCompatible(ingredient.unit_of_measurement, item.unit)) {
+      throw httpError(400, `Choose a unit compatible with inventory ingredient ${ingredient.ingredient_id}.`);
     }
   }
 

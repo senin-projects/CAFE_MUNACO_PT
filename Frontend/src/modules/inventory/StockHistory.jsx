@@ -5,7 +5,7 @@ import { Empty, ErrorBox, Loading, PageHeader } from '../../components/ui.jsx'
 import { dateTime, qty } from '../../utils.js'
 
 // Shared by inventory staff and the owner (both read-only)
-export default function StockHistory() {
+export default function StockHistory({ embedded = false }) {
   const [q, setQ] = useState('')
   const [type, setType] = useState('')
   const [days, setDays] = useState('30')
@@ -13,7 +13,7 @@ export default function StockHistory() {
 
   return (
     <>
-      <PageHeader title="Stock History" subtitle="Every time stock came in or went out, and who recorded it." />
+      {!embedded && <PageHeader title="Stock History" subtitle="Every time stock came in or went out, and who recorded it." />}
       <div className="filters">
         <input className="search" placeholder="Search by item" value={q} onChange={(e) => setQ(e.target.value)} />
         <select value={type} onChange={(e) => setType(e.target.value)} aria-label="Movement type">

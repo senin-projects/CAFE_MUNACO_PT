@@ -4,6 +4,7 @@ import { useFetch } from '../../hooks.js'
 import { Empty, ErrorBox, Loading, Modal, PageHeader } from '../../components/ui.jsx'
 import { peso } from '../../utils.js'
 import Icon from '../../components/Icon.jsx'
+import { getCompatibleUnits } from '../../../../Shared/units.js'
 
 const BLANK = { name: '', category: '', price: '', is_available: true }
 const MENU_CATEGORIES = ['coffee', 'non-coffee', 'main course', 'desserts', 'pastries', 'beverage']
@@ -56,6 +57,12 @@ export default function MenuManagement() {
     const matchesAvailability = availabilityFilter === '' || String(Number(item.is_available)) === availabilityFilter
     return matchesSearch && matchesCategory && matchesAvailability
   })
+  const unassignedIngredients = inventoryItems.filter(
+    (ingredient) => !ingredients.some((assigned) => Number(assigned.ingredient_id) === Number(ingredient.id)),
+  )
+  const availableIngredients = unassignedIngredients.filter(
+    (ingredient) => String(ingredient.name || '').toLowerCase().includes(ingredientSearch.trim().toLowerCase()),
+  )
 
   const open = async (item = null) => {
     setForm(item ? { name: item.name, category: item.category, price: String(item.price), is_available: !!item.is_available } : BLANK)
@@ -69,11 +76,22 @@ export default function MenuManagement() {
     setModalOpen(true)
     setModalLoading(true)
     try {
-      const [inventory, menuItem] = await Promise.all([
-        api('/inventory'),
-        item ? api(`/menu/${item.id}`) : Promise.resolve(null),
+      const inventoryRequest = api('/inventory')
+      const menuItemRequest = item ? api(`/menu/${item.id}`) : Promise.resolve(null)
+      const [inventoryResult, menuItemResult] = await Promise.allSettled([
+        inventoryRequest,
+        menuItemRequest,
       ])
-      setInventoryItems(inventory)
+
+      if (inventoryResult.status === 'rejected') {
+        throw inventoryResult.reason
+      }
+
+      setInventoryItems(inventoryResult.value)
+      const menuItem = menuItemResult.status === 'fulfilled' ? menuItemResult.value : null
+      if (menuItemResult.status === 'rejected' && item) {
+        throw menuItemResult.reason
+      }
       setIngredients(menuItem?.ingredients.map((ingredient) => ({
         ...ingredient,
         quantity_required: String(ingredient.quantity_required),
@@ -243,26 +261,33 @@ export default function MenuManagement() {
               <div className="menu-ingredients-heading">
                 <div>
                   <h3>Ingredients / Recipe</h3>
-                  <p>Set the quantity needed per serving. Units follow the inventory item.</p>
+                  <p>Set the quantity needed per serving and choose a compatible unit.</p>
                 </div>
               </div>
               <div className="recipe-ingredient-picker">
-                <label>Search inventory<input value={ingredientSearch} onChange={(e) => setIngredientSearch(e.target.value)} placeholder="Search ingredient name" /></label>
-                <label>Select ingredient
-                  <select value={selectedIngredientId} onChange={(e) => setSelectedIngredientId(e.target.value)}>
-                    <option value="">Choose an ingredient</option>
-                    {inventoryItems
-                      .filter((ingredient) => !ingredients.some((assigned) => Number(assigned.ingredient_id) === ingredient.id))
-                      .filter((ingredient) => `${ingredient.name} ${ingredient.category}`.toLowerCase().includes(ingredientSearch.trim().toLowerCase()))
-                      .map((ingredient) => (
-                        <option key={ingredient.id} value={ingredient.id}>
-                          {ingredient.name} — {ingredient.quantity} {ingredient.unit} available
-                        </option>
-                      ))}
-                  </select>
+                <label>Search or select ingredient
+                  <input
+                    type="text"
+                    list="menu-ingredient-options"
+                    value={ingredientSearch}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setIngredientSearch(value)
+                      const selected = unassignedIngredients.find((ingredient) => ingredient.name.toLowerCase() === value.trim().toLowerCase())
+                      setSelectedIngredientId(selected ? String(selected.id) : '')
+                    }}
+                    placeholder="Type or choose an ingredient"
+                    autoComplete="off"
+                  />
+                  <datalist id="menu-ingredient-options">
+                    {availableIngredients.map((ingredient) => (
+                      <option key={ingredient.id} value={ingredient.name} />
+                    ))}
+                  </datalist>
                 </label>
                 <button type="button" className="btn" onClick={addIngredient} disabled={!selectedIngredientId || modalLoading}>Add ingredient</button>
               </div>
+              {ingredientSearch.trim() && availableIngredients.length === 0 && <p className="recipe-empty">No matching ingredients.</p>}
               {modalLoading ? <p className="muted">Loading inventory and recipe…</p> : ingredients.length ? (
                 <div className="recipe-ingredient-list">
                   {ingredients.map((ingredient) => (
@@ -271,7 +296,7 @@ export default function MenuManagement() {
                         <strong>{ingredient.name}</strong>
                         <span>{ingredient.category}</span>
                       </div>
-                      <label>Per serving
+                      <label>Quantity needed per serving
                         <input
                           type="number"
                           min="0.01"
@@ -287,8 +312,20 @@ export default function MenuManagement() {
                         />
                       </label>
                       <div className="recipe-ingredient-unit">
-                        <span>Unit</span>
-                        <strong>{ingredient.unit_of_measurement}</strong>
+                        <label>Unit
+                          <select
+                            value={ingredient.unit_of_measurement}
+                            onChange={(e) => setIngredients((current) => current.map((entry) => (
+                              entry.ingredient_id === ingredient.ingredient_id
+                                ? { ...entry, unit_of_measurement: e.target.value }
+                                : entry
+                            )))}
+                          >
+                            {getCompatibleUnits(ingredient.inventory_unit, ingredient.unit_of_measurement).map((unit) => (
+                              <option key={unit} value={unit}>{unit}</option>
+                            ))}
+                          </select>
+                        </label>
                       </div>
                       <div className="recipe-ingredient-stock">
                         <span>Available</span>

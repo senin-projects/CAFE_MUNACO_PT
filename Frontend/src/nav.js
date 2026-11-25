@@ -13,12 +13,8 @@ export const NAV = {
   ],
   inventory: [
     { label: 'Dashboard', to: '/dashboard', icon: 'grid' },
-    { label: 'Inventory List', to: '/inventory', icon: 'box', end: true },
-    { label: 'Add New Item', to: '/inventory/new', icon: 'plus' },
-    { label: 'Stock In', to: '/inventory/stock-in', icon: 'down' },
-    { label: 'Stock Out', to: '/inventory/stock-out', icon: 'up' },
-    { label: 'Low Stock', to: '/inventory/low', icon: 'alert' },
-    { label: 'Stock History', to: '/stock-history', icon: 'archive' },
+    { label: 'Inventory Management', to: '/inventory', icon: 'box' },
+    { label: 'Stock Management', to: '/stock-management', icon: 'archive' },
   ],
   owner: [
     { label: 'Overview', to: '/dashboard', icon: 'chart' },

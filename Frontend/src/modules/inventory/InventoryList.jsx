@@ -1,27 +1,47 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useFetch } from '../../hooks.js'
-import { qs } from '../../services/api.js'
+import { api, qs } from '../../services/api.js'
 import { Empty, ErrorBox, Loading, PageHeader, StatCard, StockBadge } from '../../components/ui.jsx'
 import { INVENTORY_CATEGORIES, dateTime, qty } from '../../utils.js'
+import Icon from '../../components/Icon.jsx'
+import ItemForm from './ItemForm.jsx'
 
 // "Inventory List" for inventory staff, "Inventory Overview" (readOnly) for the owner
 export default function InventoryList({ readOnly }) {
+  const [params] = useSearchParams()
   const [q, setQ] = useState('')
   const [category, setCategory] = useState('')
   const [fresh, setFresh] = useState(false)
-  const [low, setLow] = useState(false)
-  const { data, error, loading } = useFetch(`/inventory${qs({ q, category, fresh: fresh ? '1' : '', low: low ? '1' : '' })}`, { poll: 30000 })
+  const [low, setLow] = useState(() => params.get('low') === '1')
+  const [showAddItem, setShowAddItem] = useState(false)
+  const [actionError, setActionError] = useState('')
+  const [deletingId, setDeletingId] = useState(null)
+  const { data, error, loading, reload } = useFetch(`/inventory${qs({ q, category, fresh: fresh ? '1' : '', low: low ? '1' : '' })}`, { poll: 30000 })
 
   const lowCount = data?.filter((i) => i.stock_status !== 'ok').length ?? 0
+
+  async function removeItem(item) {
+    if (!window.confirm(`Delete "${item.name}" from inventory?`)) return
+    setActionError('')
+    setDeletingId(item.id)
+    try {
+      await api(`/inventory/${item.id}`, { method: 'DELETE' })
+      reload()
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <>
       <PageHeader
-        title={readOnly ? 'Inventory Overview' : 'Inventory List'}
-        subtitle={readOnly ? 'Current quantities and availability. View only.' : 'Everything in the kitchen and storeroom.'}
+        title={readOnly ? 'Inventory Overview' : 'Inventory Management'}
+        subtitle={readOnly ? 'Current quantities and availability. View only.' : undefined}
       >
-        {!readOnly && <Link className="btn btn-primary" to="/inventory/new">Add new item</Link>}
+        {!readOnly && <button className="btn btn-primary" onClick={() => setShowAddItem(true)}>Add new item</button>}
       </PageHeader>
 
       <div className="stats">
@@ -40,27 +60,62 @@ export default function InventoryList({ readOnly }) {
         <label className="check"><input type="checkbox" checked={low} onChange={(e) => setLow(e.target.checked)} /> Low stock only</label>
       </div>
 
-      <ErrorBox message={error} />
+      <ErrorBox message={error || actionError} />
       {loading && !data ? <Loading /> : data?.length === 0 ? <Empty>No items match these filters.</Empty> : (
-        <div className="table-wrap">
-          <table>
+        <div className="table-wrap inventory-table-wrap">
+          <table className={`inventory-table${readOnly ? ' read-only' : ''}`}>
             <thead>
-              <tr><th>Item</th><th>Category</th><th className="num">On hand</th><th className="num">Reorder at</th><th>Status</th><th>Updated</th>{!readOnly && <th></th>}</tr>
+              <tr><th>Item</th><th>Category</th><th className="num">On hand</th><th className="num">Reorder at</th><th>Status</th><th>Updated</th>{!readOnly && <th className="inventory-actions-heading">Actions</th>}</tr>
             </thead>
             <tbody>
               {data?.map((i) => (
                 <tr key={i.id}>
-                  <td><strong>{i.name}</strong>{i.is_fresh ? <span className="tag">Fresh</span> : null}</td>
-                  <td>{i.category}</td>
-                  <td className="num">{qty(i.quantity)} {i.unit}</td>
-                  <td className="num muted">{qty(i.reorder_level)} {i.unit}</td>
-                  <td><StockBadge status={i.stock_status} /></td>
-                  <td className="muted">{dateTime(i.updated_at)}</td>
+                  <td data-label="Item">
+                    <div className="inventory-item-cell">
+                      <strong className="inventory-item-name">{i.name}</strong>
+                      {i.is_fresh && <span className="tag">Fresh</span>}
+                    </div>
+                  </td>
+                  <td data-label="Category"><span className="inventory-category">{i.category}</span></td>
+                  <td className="num" data-label="On hand">
+                    <span className="inventory-quantity"><span className="inventory-quantity-value">{qty(i.quantity)}</span><span className="inventory-quantity-unit">{i.unit}</span></span>
+                  </td>
+                  <td className="num" data-label="Reorder at">
+                    <span className="inventory-quantity"><span className="inventory-quantity-value">{qty(i.reorder_level)}</span><span className="inventory-quantity-unit">{i.unit}</span></span>
+                  </td>
+                  <td data-label="Status"><StockBadge status={i.stock_status} /></td>
+                  <td className="inventory-updated" data-label="Updated">{dateTime(i.updated_at)}</td>
                   {!readOnly && (
-                    <td className="row-actions">
-                      <Link className="link" to={`/inventory/stock-in?item=${i.id}`}>Stock in</Link>
-                      <Link className="link" to={`/inventory/stock-out?item=${i.id}`}>Stock out</Link>
-                      <Link className="link" to={`/inventory/${i.id}/edit`}>Edit</Link>
+                    <td className="inventory-actions-cell" data-label="Actions">
+                      <div className="inventory-row-actions">
+                        <Link className="inventory-stock-action" to={`/stock-management?tab=in&item=${i.id}`}>
+                          <Icon name="download" size={17} />
+                          <span>Stock In</span>
+                        </Link>
+                        <Link className="inventory-stock-action" to={`/stock-management?tab=out&item=${i.id}`}>
+                          <Icon name="upload" size={17} />
+                          <span>Stock Out</span>
+                        </Link>
+                        <details className="inventory-more">
+                          <summary className="icon-button" aria-label={`More actions for ${i.name}`} title="More actions">
+                            <Icon name="moreVertical" size={19} />
+                          </summary>
+                          <div className="inventory-action-menu">
+                            <Link className="inventory-action-option" to={`/inventory/${i.id}/edit`}>
+                              <Icon name="edit" size={16} /> Edit
+                            </Link>
+                            <button
+                              type="button"
+                              className="inventory-action-option danger"
+                              disabled={deletingId === i.id}
+                              onClick={() => removeItem(i)}
+                            >
+                              <Icon name="trash" size={16} />
+                              {deletingId === i.id ? 'Deleting...' : 'Delete'}
+                            </button>
+                          </div>
+                        </details>
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -68,6 +123,16 @@ export default function InventoryList({ readOnly }) {
             </tbody>
           </table>
         </div>
+      )}
+      {showAddItem && (
+        <ItemForm
+          modal
+          onClose={() => setShowAddItem(false)}
+          onSaved={() => {
+            setShowAddItem(false)
+            reload()
+          }}
+        />
       )}
     </>
   )

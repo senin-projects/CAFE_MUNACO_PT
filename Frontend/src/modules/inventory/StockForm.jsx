@@ -8,7 +8,7 @@ import { qty } from '../../utils.js'
 const OUT_REASONS = ['Used in kitchen', 'Spoiled', 'Wasted', 'Returned to supplier', 'Event or advance order', 'Other']
 
 // "Stock In" (type="in") and "Stock Out" (type="out")
-export default function StockForm({ type }) {
+export default function StockForm({ type, embedded = false }) {
   const [params] = useSearchParams()
   const { data: items, error: loadError, reload } = useFetch('/inventory')
   const [form, setForm] = useState({ item: params.get('item') || '', quantity: '', supplier: '', reason: type === 'out' ? OUT_REASONS[0] : 'Delivery', note: '' })
@@ -48,10 +48,12 @@ export default function StockForm({ type }) {
 
   return (
     <>
-      <PageHeader
-        title={type === 'in' ? 'Stock In' : 'Stock Out'}
-        subtitle={type === 'in' ? 'Record supplies you purchased or received.' : 'Record supplies that were used or removed.'}
-      />
+      {!embedded && (
+        <PageHeader
+          title={type === 'in' ? 'Stock In' : 'Stock Out'}
+          subtitle={type === 'in' ? 'Record supplies you purchased or received.' : 'Record supplies that were used or removed.'}
+        />
+      )}
       <form className="panel form narrow" onSubmit={submit}>
         <ErrorBox message={error || loadError} />
         {done && <div className="alert alert-ok" role="status">{done}</div>}
@@ -64,7 +66,7 @@ export default function StockForm({ type }) {
         </label>
 
         <label>Quantity{selected ? ` (${selected.unit})` : ''}
-          <input type="number" min="0" step="0.01" value={form.quantity} onChange={set('quantity')} />
+          <input type="number" min="0" step="0.000001" value={form.quantity} onChange={set('quantity')} />
         </label>
 
         {type === 'in' ? (

@@ -1,4 +1,4 @@
-CREATE TABLE menu_item_ingredients (
+CREATE TABLE IF NOT EXISTS menu_item_ingredients (
   menu_item_id       INT NOT NULL,
   ingredient_id      INT NOT NULL,
   quantity_required  DECIMAL(10,2) NOT NULL,

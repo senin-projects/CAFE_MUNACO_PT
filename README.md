@@ -3,7 +3,7 @@
 ## 1. Database (XAMPP)
 Start MySQL in XAMPP, open http://localhost/phpmyadmin -> Import -> `Database/cafe_munaco.sql`.
 WARNING: importing again wipes all tables. Do it once per computer.
-For an existing database, also apply the unapplied migrations in `Database/migrations/` in date order in phpMyAdmin, including `2026-11-24_create_menu_item_ingredients.sql`.
+For an existing database, also apply the unapplied migrations in `Database/migrations/` in date order in phpMyAdmin, including `2026-11-24_create_menu_item_ingredients.sql` and `2026-11-25_add_recipe_unit_conversions.sql`.
 
 ## 2. Backend
 ```

@@ -8,6 +8,7 @@ router.get('/movements', ...getInventoryHandlerChain('get', '/movements'));
 router.get('/:id', ...getInventoryHandlerChain('get', '/:id'));
 router.post('/', ...getInventoryHandlerChain('post', '/'));
 router.put('/:id', ...getInventoryHandlerChain('put', '/:id'));
+router.delete('/:id', ...getInventoryHandlerChain('delete', '/:id'));
 router.post('/:id/stock-in', ...getInventoryHandlerChain('post', '/:id/stock-in'));
 router.post('/:id/stock-out', ...getInventoryHandlerChain('post', '/:id/stock-out'));
 

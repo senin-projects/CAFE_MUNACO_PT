@@ -96,8 +96,8 @@ CREATE TABLE inventory_items (
   name          VARCHAR(100) NOT NULL UNIQUE,
   category      ENUM('Seafood','Meat','Vegetables','Dairy','Dry Goods','Beverages','Other') NOT NULL DEFAULT 'Other',
   unit          VARCHAR(20)  NOT NULL DEFAULT 'kg',
-  quantity      DECIMAL(10,2) NOT NULL DEFAULT 0,
-  reorder_level DECIMAL(10,2) NOT NULL DEFAULT 0,
+  quantity      DECIMAL(16,6) NOT NULL DEFAULT 0,
+  reorder_level DECIMAL(16,6) NOT NULL DEFAULT 0,
   is_fresh      TINYINT(1)   NOT NULL DEFAULT 0,   -- fresh / perishable (seafood, vegetables, ...)
   created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -107,8 +107,8 @@ CREATE TABLE stock_movements (
   id             INT AUTO_INCREMENT PRIMARY KEY,
   item_id        INT NOT NULL,
   movement_type  ENUM('in','out') NOT NULL,
-  quantity       DECIMAL(10,2) NOT NULL,
-  balance_after  DECIMAL(10,2) NOT NULL,
+  quantity       DECIMAL(16,6) NOT NULL,
+  balance_after  DECIMAL(16,6) NOT NULL,
   reason         VARCHAR(100) NULL,
   supplier       VARCHAR(100) NULL,
   note           VARCHAR(255) NULL,

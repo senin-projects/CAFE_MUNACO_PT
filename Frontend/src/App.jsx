@@ -13,8 +13,8 @@ import KitchenOrders from './modules/kitchen/KitchenOrders.jsx'
 import InventoryList from './modules/inventory/InventoryList.jsx'
 import ItemForm from './modules/inventory/ItemForm.jsx'
 import StockForm from './modules/inventory/StockForm.jsx'
-import LowStock from './modules/inventory/LowStock.jsx'
 import StockHistory from './modules/inventory/StockHistory.jsx'
+import StockManagement from './modules/inventory/StockManagement.jsx'
 import Reports from './modules/owner/Reports.jsx'
 import Users from './modules/owner/Users.jsx'
 import MenuManagement from './modules/owner/MenuManagement.jsx'
@@ -68,7 +68,8 @@ export default function App() {
         <Route path="/inventory/:id/edit" element={<Only roles={['inventory']}><ItemForm /></Only>} />
         <Route path="/inventory/stock-in" element={<Only roles={['inventory']}><StockForm type="in" /></Only>} />
         <Route path="/inventory/stock-out" element={<Only roles={['inventory']}><StockForm type="out" /></Only>} />
-        <Route path="/inventory/low" element={<Only roles={['inventory']}><LowStock /></Only>} />
+        <Route path="/stock-management" element={<Only roles={['inventory']}><StockManagement /></Only>} />
+        <Route path="/inventory/low" element={<Navigate to="/inventory?low=1" replace />} />
         <Route path="/stock-history" element={<Only roles={['inventory', 'owner']}><StockHistory /></Only>} />
 
         {/* Owner */}

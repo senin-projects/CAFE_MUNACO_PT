@@ -13,7 +13,7 @@ const READERS = ['inventory', 'owner', 'kitchen'];
 const num = (v, label) => {
   const n = Number(v);
   if (isBlank(v) || !Number.isFinite(n) || n < 0) throw httpError(400, `${label} must be a number, zero or higher.`);
-  return Math.round(n * 100) / 100;
+  return Math.round((n + Number.EPSILON) * 1_000_000) / 1_000_000;
 };
 
 const status = (item) => (item.quantity <= 0 ? 'out' : item.quantity <= item.reorder_level ? 'low' : 'ok');
@@ -185,6 +185,51 @@ router.put(
   })
 );
 
+// ---------------------------------------------------------------- delete item (inventory)
+router.delete(
+  '/:id',
+  requireRole('inventory'),
+  wrap(async (req, res) => {
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [[existing]] = await conn.query(
+        'SELECT id, name FROM inventory_items WHERE id = ? FOR UPDATE',
+        [req.params.id]
+      );
+      if (!existing) throw httpError(404, 'Item not found.');
+
+      const [[recipeUse]] = await conn.query(
+        `SELECT COUNT(*) AS count
+         FROM menu_item_ingredients
+         WHERE ingredient_id = ?`,
+        [req.params.id]
+      );
+      if (recipeUse.count > 0) {
+        throw httpError(409, `"${existing.name}" is used in menu recipes. Remove it from those recipes before deleting it.`);
+      }
+
+      const [[stockUse]] = await conn.query(
+        'SELECT COUNT(*) AS count FROM stock_movements WHERE item_id = ?',
+        [req.params.id]
+      );
+      if (stockUse.count > 0) {
+        throw httpError(409, `"${existing.name}" has stock history. It cannot be deleted so that history is preserved.`);
+      }
+
+      await conn.query('DELETE FROM inventory_items WHERE id = ?', [req.params.id]);
+      await logActivity(req.user.id, 'Item deleted', `${existing.name} deleted from inventory`, conn);
+      await conn.commit();
+      res.json({ ok: true });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  })
+);
+
 // ---------------------------------------------------------------- stock in / stock out (inventory)
 async function moveStock(req, res, type) {
   const b = req.body || {};
@@ -202,7 +247,7 @@ async function moveStock(req, res, type) {
     if (type === 'out' && quantity > item.quantity) {
       throw httpError(400, `Only ${item.quantity} ${item.unit} of ${item.name} left. You cannot remove ${quantity}.`);
     }
-    const balance = Math.round((item.quantity + (type === 'in' ? quantity : -quantity)) * 100) / 100;
+    const balance = num(Number(item.quantity) + (type === 'in' ? quantity : -quantity), 'Quantity');
     await conn.query('UPDATE inventory_items SET quantity = ? WHERE id = ?', [balance, item.id]);
     await conn.query(
       'INSERT INTO stock_movements (item_id, movement_type, quantity, balance_after, reason, supplier, note, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',

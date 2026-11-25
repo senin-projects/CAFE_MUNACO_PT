@@ -1,4 +1,6 @@
-const numberFormatter = new Intl.NumberFormat('en-PH', { maximumFractionDigits: 2 })
+import { UNITS } from '../../Shared/units.js'
+
+const numberFormatter = new Intl.NumberFormat('en-PH', { maximumFractionDigits: 6 })
 
 export const formatNumber = (value) => numberFormatter.format(Number(value ?? 0))
 export const formatCurrency = (value) => `₱${formatNumber(value)}`
@@ -60,4 +62,4 @@ export const ROLE_LABEL = {
 }
 
 export const INVENTORY_CATEGORIES = ['Seafood', 'Meat', 'Vegetables', 'Dairy', 'Dry Goods', 'Beverages', 'Other']
-export const UNITS = ['kg', 'g', 'pcs', 'pack', 'box', 'tray', 'dozen', 'L', 'mL']
+export { UNITS }

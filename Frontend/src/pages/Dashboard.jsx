@@ -104,7 +104,7 @@ function Body({ role, d }) {
                 ))}
               </ul>
             )}
-            <Link className="link" to="/inventory/low">See all low stock</Link>
+            <Link className="link" to="/inventory?low=1">See all low stock</Link>
           </section>
           <section className="panel">
             <h2>Recent stock changes</h2>
