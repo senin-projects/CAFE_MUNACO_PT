@@ -24,6 +24,7 @@ function validateMenuItem(body = {}) {
 
 function validateRecipe(ingredients) {
   if (!Array.isArray(ingredients)) throw httpError(400, 'Ingredients must be a list.');
+  if (!ingredients.length) throw httpError(400, 'Add at least one tracked ingredient to the menu item recipe.');
   if (ingredients.length > 200) throw httpError(400, 'A menu item can have at most 200 ingredients.');
   const seen = new Set();
   return ingredients.map((ingredient) => {
@@ -76,7 +77,9 @@ router.get(
   '/',
   wrap(async (req, res) => {
     const [rows] = await pool.query(
-      'SELECT id, name, category, price, is_available FROM menu_items ORDER BY category, name'
+      `SELECT m.id, m.name, m.category, m.price, m.is_available,
+              EXISTS(SELECT 1 FROM menu_item_ingredients mii WHERE mii.menu_item_id = m.id) AS has_recipe
+       FROM menu_items m ORDER BY m.category, m.name`
     );
     res.json(rows);
   })
@@ -140,6 +143,13 @@ router.put(
       await conn.beginTransaction();
       const [[existing]] = await conn.query('SELECT id FROM menu_items WHERE id = ? FOR UPDATE', [req.params.id]);
       if (!existing) throw httpError(404, 'Menu item not found.');
+      if (!ingredients) {
+        const [[recipe]] = await conn.query(
+          'SELECT COUNT(*) AS count FROM menu_item_ingredients WHERE menu_item_id = ?',
+          [req.params.id],
+        );
+        if (!recipe.count) throw httpError(409, 'Add at least one tracked ingredient before saving this menu item.');
+      }
       await conn.query(
         'UPDATE menu_items SET name = ?, category = ?, price = ?, is_available = ? WHERE id = ?',
         [name, category, price, is_available ? 1 : 0, req.params.id]
@@ -162,9 +172,16 @@ router.patch(
   requireRole('owner', 'kitchen'),
   wrap(async (req, res) => {
     if (typeof req.body?.is_available !== 'boolean') throw httpError(400, 'Choose whether the item is available.');
-    await pool.query('UPDATE menu_items SET is_available = ? WHERE id = ?', [req.body.is_available ? 1 : 0, req.params.id]);
-    const [[item]] = await pool.query('SELECT name FROM menu_items WHERE id = ?', [req.params.id]);
+    const [[item]] = await pool.query('SELECT id, name FROM menu_items WHERE id = ?', [req.params.id]);
     if (!item) throw httpError(404, 'Menu item not found.');
+    if (req.body.is_available) {
+      const [[recipe]] = await pool.query(
+        'SELECT COUNT(*) AS count FROM menu_item_ingredients WHERE menu_item_id = ?',
+        [req.params.id],
+      );
+      if (!recipe.count) throw httpError(409, 'Add at least one tracked ingredient before making this item available.');
+    }
+    await pool.query('UPDATE menu_items SET is_available = ? WHERE id = ?', [req.body.is_available ? 1 : 0, req.params.id]);
     await logActivity(req.user.id, req.body.is_available ? 'Menu item available' : 'Menu item unavailable', item.name);
     res.json({ ok: true });
   })
@@ -174,11 +191,11 @@ router.delete(
   '/:id',
   requireRole('owner', 'kitchen'),
   wrap(async (req, res) => {
-    const [[item]] = await pool.query('SELECT name FROM menu_items WHERE id = ?', [req.params.id]);
+    const [[item]] = await pool.query('SELECT id, name FROM menu_items WHERE id = ?', [req.params.id]);
     if (!item) throw httpError(404, 'Menu item not found.');
-    await pool.query('DELETE FROM menu_items WHERE id = ?', [req.params.id]);
-    await logActivity(req.user.id, 'Menu item deleted', item.name);
-    res.json({ ok: true });
+    await pool.query('UPDATE menu_items SET is_available = 0 WHERE id = ?', [req.params.id]);
+    await logActivity(req.user.id, 'Menu item archived', `${item.name} hidden from new orders`);
+    res.json({ ok: true, is_available: false });
   })
 );
 

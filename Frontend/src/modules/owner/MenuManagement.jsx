@@ -54,7 +54,8 @@ export default function MenuManagement() {
     const query = search.trim().toLowerCase()
     const matchesSearch = !query || `${item.name} ${item.category}`.toLowerCase().includes(query)
     const matchesCategory = !categoryFilter || item.category === categoryFilter
-    const matchesAvailability = availabilityFilter === '' || String(Number(item.is_available)) === availabilityFilter
+    const availableForOrders = Boolean(item.is_available) && Boolean(item.has_recipe)
+    const matchesAvailability = availabilityFilter === '' || String(Number(availableForOrders)) === availabilityFilter
     return matchesSearch && matchesCategory && matchesAvailability
   })
   const unassignedIngredients = inventoryItems.filter(
@@ -164,7 +165,7 @@ export default function MenuManagement() {
   }
 
   async function remove(item) {
-    if (!window.confirm(`Delete ${item.name} from the menu? Existing orders will keep their saved item name and price.`)) return
+    if (!window.confirm(`Archive ${item.name}? It will no longer be available for new orders, and existing order history and recipes will be preserved.`)) return
     setActionError('')
     try {
       await api(`/menu/${item.id}`, { method: 'DELETE' })
@@ -205,7 +206,7 @@ export default function MenuManagement() {
             <thead><tr><th>Item</th><th>Category</th><th className="num">Price</th><th>Availability</th><th aria-label="Actions"></th></tr></thead>
             <tbody>
               {filteredItems.map((item) => (
-                <tr key={item.id} className={item.is_available ? '' : 'inactive'}>
+                <tr key={item.id} className={item.is_available && item.has_recipe ? '' : 'inactive'}>
                   <td className="menu-item-cell-wrap">
                     <span className="menu-item-cell">
                       <span className="menu-category-icon"><Icon name={categoryIcon(item.category)} size={19} /></span>
@@ -214,14 +215,18 @@ export default function MenuManagement() {
                   </td>
                   <td className="menu-category-label">{item.category}</td>
                   <td className="num">{peso(item.price)}</td>
-                  <td><span className={`badge ${item.is_available ? 'stock-ok' : 'badge-cancelled'}`}>{item.is_available ? 'Available' : 'Unavailable'}</span></td>
+                  <td>
+                    <span className={`badge ${item.is_available && item.has_recipe ? 'stock-ok' : 'badge-cancelled'}`}>
+                      {!item.has_recipe ? 'Recipe required' : item.is_available ? 'Available' : 'Unavailable'}
+                    </span>
+                  </td>
                   <td className="menu-row-actions">
                     <span className="menu-row-action-buttons">
                       <button type="button" className="icon-button" onClick={() => open(item)} aria-label={`Edit ${item.name}`} title="Edit">
                         <Icon name="edit" size={17} />
                       </button>
-                      <button type="button" className="icon-button icon-button-danger" onClick={() => remove(item)} aria-label={`Delete ${item.name}`} title="Delete">
-                        <Icon name="trash" size={17} />
+                      <button type="button" className="icon-button" onClick={() => remove(item)} aria-label={`Archive ${item.name}`} title="Archive">
+                        <Icon name="archive" size={17} />
                       </button>
                     </span>
                   </td>

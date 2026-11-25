@@ -166,6 +166,11 @@ router.put(
           [req.params.id]
         );
         if (assigned) throw httpError(409, 'This ingredient is used in menu recipes. Remove it from those recipes before changing its unit.');
+        const [[snapshotted]] = await conn.query(
+          'SELECT order_item_id FROM order_item_ingredients WHERE ingredient_id = ? LIMIT 1 FOR UPDATE',
+          [req.params.id],
+        );
+        if (snapshotted) throw httpError(409, 'This ingredient unit is part of order recipe history and cannot be changed.');
       }
       const [dup] = await conn.query('SELECT id FROM inventory_items WHERE name = ? AND id <> ?', [name, req.params.id]);
       if (dup.length) throw httpError(409, `"${name}" is already in the inventory list.`);
@@ -207,6 +212,14 @@ router.delete(
       );
       if (recipeUse.count > 0) {
         throw httpError(409, `"${existing.name}" is used in menu recipes. Remove it from those recipes before deleting it.`);
+      }
+
+      const [[orderRecipeUse]] = await conn.query(
+        'SELECT COUNT(*) AS count FROM order_item_ingredients WHERE ingredient_id = ?',
+        [req.params.id],
+      );
+      if (orderRecipeUse.count > 0) {
+        throw httpError(409, `"${existing.name}" is part of order recipe history and cannot be deleted.`);
       }
 
       const [[stockUse]] = await conn.query(

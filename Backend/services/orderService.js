@@ -84,6 +84,9 @@ export async function validateOrder(body, preservedUnavailable = new Map()) {
       }
       return { ...preserved, menu_item_id: m.id };
     }
+    if (!m.has_recipe) {
+      throw httpError(409, `${m.name} has no inventory recipe yet. Ask an owner to finish its recipe before ordering.`);
+    }
     return {
       menu_item_id: m.id,
       item_name: m.name,

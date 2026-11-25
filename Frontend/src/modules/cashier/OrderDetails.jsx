@@ -25,6 +25,10 @@ export default function OrderDetails() {
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [actionBusy, setActionBusy] = useState(false)
   const [receiptOpen, setReceiptOpen] = useState(false)
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
+  const [paymentResolution, setPaymentResolution] = useState('')
+  const [inventoryResolution, setInventoryResolution] = useState('')
   const showPrices = user.role !== 'kitchen'
 
   async function run(path, options, after) {
@@ -60,6 +64,33 @@ export default function OrderDetails() {
   if (loading && !o) return <Loading />
   if (!o) return <ErrorBox message={error || 'Order not found.'} />
 
+  const ownerCanCancel = user.role === 'owner' && ['pending', 'sent', 'preparing', 'ready'].includes(o.status)
+  const cashierCanCancel = user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'unpaid'
+  const needsPaymentResolution = user.role === 'owner' && o.payment_status === 'paid'
+  const needsInventoryResolution = user.role === 'owner' && ['preparing', 'ready'].includes(o.status)
+
+  async function cancelOrder(event) {
+    event.preventDefault()
+    if (actionBusy) return
+    setActionError('')
+    setActionBusy(true)
+    try {
+      const body = {}
+      if (user.role === 'owner') {
+        body.reason = cancelReason
+        if (needsPaymentResolution) body.payment_resolution = paymentResolution
+        if (needsInventoryResolution) body.inventory_resolution = inventoryResolution
+      }
+      await api(`/orders/${id}/cancel`, { method: 'POST', body })
+      setCancelOpen(false)
+      reload()
+    } catch (e) {
+      setActionError(e.message)
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
   const progressSteps = [
     ...STEPS.map(([key, label]) => ({ key, label, at: o[key] })),
     ...(o.status === 'cancelled' ? [{ key: 'cancelled', label: 'Cancelled', at: o.cancellation?.created_at }] : []),
@@ -83,6 +114,20 @@ export default function OrderDetails() {
         </>}
         {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'paid' && <button className="btn btn-primary" disabled={actionBusy} onClick={() => run(`/orders/${id}/send`, { method: 'POST' })}>{actionBusy ? 'Updating...' : 'Send to kitchen'}</button>}
         {user.role === 'cashier' && o.status === 'ready' && <button className="btn btn-primary" disabled={actionBusy} onClick={() => setStatus('served')}>{actionBusy ? 'Updating...' : 'Mark as served'}</button>}
+        {(ownerCanCancel || cashierCanCancel) && (
+          <button
+            className="btn"
+            disabled={actionBusy}
+            onClick={() => {
+              setCancelReason('')
+              setPaymentResolution('')
+              setInventoryResolution('')
+              setCancelOpen(true)
+            }}
+          >
+            Cancel order
+          </button>
+        )}
         {user.role !== 'kitchen' && <button className="btn" onClick={() => setReceiptOpen(true)}>Print receipt</button>}
         {user.role !== 'kitchen' && (
           <Link className="icon-button" to="/orders" aria-label="Back to Orders" title="Back to Orders">
@@ -94,6 +139,50 @@ export default function OrderDetails() {
       </PageHeader>
 
       <ErrorBox message={actionError} />
+      {cancelOpen && (
+        <Modal
+          title="Cancel order"
+          eyebrow="ORDER CANCELLATION"
+          showCloseButton
+          onClose={() => setCancelOpen(false)}
+        >
+          <form className="form" onSubmit={cancelOrder}>
+            {user.role === 'owner' && (
+              <label>Reason for cancellation
+                <textarea value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} maxLength={500} required />
+              </label>
+            )}
+            {needsPaymentResolution && (
+              <label>Payment outcome
+                <select value={paymentResolution} onChange={(event) => setPaymentResolution(event.target.value)} required>
+                  <option value="">Choose an outcome</option>
+                  <option value="refunded">Customer was refunded</option>
+                  <option value="not_refunded">Customer was not refunded</option>
+                </select>
+              </label>
+            )}
+            {needsInventoryResolution && (
+              <label>Ingredients used for this order
+                <select value={inventoryResolution} onChange={(event) => setInventoryResolution(event.target.value)} required>
+                  <option value="">Choose an outcome</option>
+                  <option value="consumed">Consumed or wasted — keep stock deducted</option>
+                  <option value="restocked">Fully restocked — add ingredients back to inventory</option>
+                </select>
+              </label>
+            )}
+            {needsInventoryResolution && (
+              <p className="muted">Choose “Fully restocked” only if all deducted ingredients were safely returned to inventory.</p>
+            )}
+            {cashierCanCancel && <p className="muted">This unpaid draft has not been sent to the kitchen.</p>}
+            <div className="form-actions">
+              <button className="btn btn-primary" disabled={actionBusy}>
+                {actionBusy ? 'Cancelling...' : 'Confirm cancellation'}
+              </button>
+              <button type="button" className="btn" disabled={actionBusy} onClick={() => setCancelOpen(false)}>Keep order</button>
+            </div>
+          </form>
+        </Modal>
+      )}
       {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'paid' && <p className="muted">This draft is paid and locked. Send it to the kitchen to continue.</p>}
 
       <section className="panel order-progress-panel">
@@ -137,6 +226,9 @@ export default function OrderDetails() {
             {o.cancellation && <p className="muted">Cancelled by {o.cancellation.cancelled_by_name} · {dateTime(o.cancellation.created_at)}</p>}
             {o.payment_status === 'paid' && o.cancellation && (
               <p>Payment outcome: {o.cancellation.payment_resolution === 'refunded' ? 'Refunded' : 'Not refunded'}</p>
+            )}
+            {o.cancellation?.inventory_resolution && o.cancellation.inventory_resolution !== 'not_applicable' && (
+              <p>Ingredients: {o.cancellation.inventory_resolution === 'restocked' ? 'fully restocked' : 'consumed or wasted'}</p>
             )}
           </details>
         )}

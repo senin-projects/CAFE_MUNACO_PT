@@ -3,7 +3,10 @@
 ## 1. Database (XAMPP)
 Start MySQL in XAMPP, open http://localhost/phpmyadmin -> Import -> `Database/cafe_munaco.sql`.
 WARNING: importing again wipes all tables. Do it once per computer.
-For an existing database, also apply the unapplied migrations in `Database/migrations/` in date order in phpMyAdmin, including `2026-11-24_create_menu_item_ingredients.sql` and `2026-11-25_add_recipe_unit_conversions.sql`.
+For an existing database, also apply the unapplied migrations in `Database/migrations/` in date order in phpMyAdmin, including `2026-11-24_create_menu_item_ingredients.sql`, `2026-11-25_add_recipe_unit_conversions.sql`, and `2026-11-25_add_order_recipe_snapshots.sql`.
+
+Orders snapshot their ingredient recipes when sent to the kitchen. Inventory is deducted when preparation starts. If an owner cancels an order after preparation starts, they must record whether ingredients were consumed/wasted or fully restocked.
+After a fresh database import, add a recipe to each menu item in Menu Management before taking orders; items without recipes are marked as requiring a recipe and cannot be ordered.
 
 ## 2. Backend
 ```

@@ -9,7 +9,12 @@ export const ORDER_SELECT = `
   LEFT JOIN users ku ON ku.id = o.prepared_by`;
 
 export async function findMenuItemsByIds(ids, db = pool) {
-  return (await db.query('SELECT id, name, price, is_available FROM menu_items WHERE id IN (?)', [ids]))[0];
+  return (await db.query(
+    `SELECT m.id, m.name, m.price, m.is_available,
+            EXISTS(SELECT 1 FROM menu_item_ingredients mii WHERE mii.menu_item_id = m.id) AS has_recipe
+     FROM menu_items m WHERE m.id IN (?)`,
+    [ids],
+  ))[0];
 }
 
 export async function loadOrderItems(orderIds, db = pool) {

@@ -5,6 +5,7 @@ import { wrap, httpError } from '../utils/http.js';
 import { logActivity } from '../services/activityService.js';
 import { replaceOrderItems } from '../models/orderModel.js';
 import { validateOrder } from '../services/orderService.js';
+import { snapshotOrderRecipe } from '../services/orderInventoryService.js';
 import { getRouteHandlerChain } from './routeHandlers.js';
 
 const router = Router();
@@ -40,6 +41,7 @@ router.post(
       const orderNo = `MUN-${String(id).padStart(5, '0')}`;
       await conn.query('UPDATE orders SET order_no = ? WHERE id = ?', [orderNo, id]);
       await replaceOrderItems(conn, id, items);
+      if (sendNow) await snapshotOrderRecipe(conn, id);
       await logActivity(req.user.id, sendNow ? 'Payment recorded' : 'Order created', sendNow ? `${orderNo} paid by ${paymentMethod.replace('_', '-')}` : `${orderNo} for ${header.customer_name} saved as draft`, conn);
       if (sendNow) await logActivity(req.user.id, 'Order sent', `${orderNo} sent to kitchen`, conn);
       await conn.commit();
@@ -118,11 +120,32 @@ router.post(
   '/:id/send',
   requireRole('cashier'),
   wrap(async (req, res) => {
-    const [result] = await pool.query("UPDATE orders SET status = 'sent', sent_at = NOW() WHERE id = ? AND status = 'pending' AND payment_status = 'paid'", [req.params.id]);
-    if (!result.affectedRows) throw httpError(409, 'Record payment before sending this order to the kitchen.');
-    const [[order]] = await pool.query('SELECT order_no FROM orders WHERE id = ?', [req.params.id]);
-    await logActivity(req.user.id, 'Order sent', `${order.order_no} sent to kitchen`);
-    res.json({ ok: true });
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [[order]] = await conn.query(
+        'SELECT id, order_no, status, payment_status FROM orders WHERE id = ? FOR UPDATE',
+        [req.params.id],
+      );
+      if (!order || order.status !== 'pending' || order.payment_status !== 'paid') {
+        throw httpError(409, 'Record payment before sending this order to the kitchen.');
+      }
+
+      await snapshotOrderRecipe(conn, order.id);
+      const [result] = await conn.query(
+        "UPDATE orders SET status = 'sent', sent_at = NOW() WHERE id = ? AND status = 'pending' AND payment_status = 'paid'",
+        [order.id],
+      );
+      if (!result.affectedRows) throw httpError(409, 'This order changed before it could be sent. Refresh and try again.');
+      await logActivity(req.user.id, 'Order sent', `${order.order_no} sent to kitchen`, conn);
+      await conn.commit();
+      res.json({ ok: true });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
   })
 );
 

@@ -62,7 +62,9 @@ export default function NewOrder() {
     const item = (menu || []).find((m) => m.id === Number(key))
     if (!item) return null
     const saved = savedItems.find((i) => i.menu_item_id === item.id)
-    return !item.is_available && saved ? { ...item, name: saved.item_name, price: saved.unit_price, retainedUnavailable: true } : item
+    return (!item.is_available || !item.has_recipe) && saved
+      ? { ...item, name: saved.item_name, price: saved.unit_price, retainedUnavailable: true }
+      : item
   }).filter(Boolean)
   const total = lines.reduce((sum, m) => sum + m.price * cart[m.id].qty, 0)
   const cashAmount = Number(cashReceived) || 0
@@ -168,20 +170,24 @@ export default function NewOrder() {
               {categories.map((c) => <button key={c} className={category === c ? 'chip on' : 'chip'} onClick={() => setCategory(c)}>{c}</button>)}
             </div>
             <div className="menu-grid">
-              {shown.map((m) => (
-                <button
-                  key={m.id}
-                  className={`menu-item${m.is_available ? '' : ' unavailable'}`}
-                  disabled={!m.is_available}
-                  onClick={() => add(m)}
-                  aria-label={m.is_available ? `Add ${m.name}` : `${m.name} unavailable`}
-                >
-                  <span>{m.name}</span>
-                  <strong>{peso(m.price)}</strong>
-                  {!m.is_available && <em className="menu-unavailable">Unavailable</em>}
-                  {cart[m.id] && <em className="in-cart">{qty(cart[m.id].qty)}</em>}
-                </button>
-              ))}
+              {shown.map((m) => {
+                const canOrder = Boolean(m.is_available) && Boolean(m.has_recipe)
+                const unavailableMessage = m.has_recipe ? 'Unavailable' : 'Recipe required'
+                return (
+                  <button
+                    key={m.id}
+                    className={`menu-item${canOrder ? '' : ' unavailable'}`}
+                    disabled={!canOrder}
+                    onClick={() => add(m)}
+                    aria-label={canOrder ? `Add ${m.name}` : `${m.name} ${unavailableMessage.toLowerCase()}`}
+                  >
+                    <span>{m.name}</span>
+                    <strong>{peso(m.price)}</strong>
+                    {!canOrder && <em className="menu-unavailable">{unavailableMessage}</em>}
+                    {cart[m.id] && <em className="in-cart">{qty(cart[m.id].qty)}</em>}
+                  </button>
+                )
+              })}
             </div>
           </section>
         </div>

@@ -60,6 +60,7 @@ CREATE TABLE orders (
   preparing_at     DATETIME NULL,
   ready_at         DATETIME NULL,
   served_at        DATETIME NULL,
+  ingredients_deducted_at DATETIME NULL,
   FOREIGN KEY (created_by)  REFERENCES users(id),
   FOREIGN KEY (prepared_by) REFERENCES users(id),
   INDEX idx_status (status),
@@ -73,6 +74,7 @@ CREATE TABLE order_cancellations (
   previous_status    ENUM('pending','sent','preparing','ready') NOT NULL,
   reason             VARCHAR(500) NOT NULL,
   payment_resolution ENUM('not_applicable','refunded','not_refunded') NOT NULL,
+  inventory_resolution ENUM('not_applicable','consumed','restocked') NOT NULL DEFAULT 'not_applicable',
   created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
   FOREIGN KEY (cancelled_by) REFERENCES users(id)
@@ -128,6 +130,19 @@ CREATE TABLE menu_item_ingredients (
   PRIMARY KEY (menu_item_id, ingredient_id),
   INDEX idx_menu_item_ingredients_ingredient (ingredient_id),
   FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE,
+  FOREIGN KEY (ingredient_id) REFERENCES inventory_items(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE order_item_ingredients (
+  order_item_id       INT NOT NULL,
+  ingredient_id       INT NOT NULL,
+  ingredient_name     VARCHAR(100) NOT NULL,
+  quantity_required   DECIMAL(10,2) NOT NULL,
+  unit_of_measurement VARCHAR(20) NOT NULL,
+  inventory_unit      VARCHAR(20) NOT NULL,
+  PRIMARY KEY (order_item_id, ingredient_id),
+  INDEX idx_order_item_ingredients_ingredient (ingredient_id),
+  FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE,
   FOREIGN KEY (ingredient_id) REFERENCES inventory_items(id) ON DELETE RESTRICT
 );
 

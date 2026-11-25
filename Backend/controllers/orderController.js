@@ -12,6 +12,10 @@ import {
   ORDER_TYPES,
   stripOrderPrices,
 } from '../services/orderService.js';
+import {
+  deductOrderIngredients,
+  restockOrderIngredients,
+} from '../services/orderInventoryService.js';
 
 const router = Router();
 
@@ -78,7 +82,8 @@ router.get(
     }
     order.items = (await loadOrderItems([order.id])).get(order.id) || [];
     const [[cancellation]] = await pool.query(
-      `SELECT c.reason, c.payment_resolution, c.previous_status, c.created_at, u.full_name AS cancelled_by_name
+      `SELECT c.reason, c.payment_resolution, c.inventory_resolution, c.previous_status,
+              c.created_at, u.full_name AS cancelled_by_name
        FROM order_cancellations c JOIN users u ON u.id = c.cancelled_by WHERE c.order_id = ?`,
       [order.id]
     );
@@ -96,7 +101,7 @@ router.post(
     try {
       await conn.beginTransaction();
       const [rows] = await conn.query(
-        'SELECT id, order_no, status, payment_status FROM orders WHERE id = ? FOR UPDATE',
+        'SELECT id, order_no, status, payment_status, ingredients_deducted_at FROM orders WHERE id = ? FOR UPDATE',
         [req.params.id]
       );
       const order = rows[0];
@@ -122,19 +127,41 @@ router.post(
         throw httpError(400, 'Choose whether the customer was refunded.');
       }
 
+      const preparationStarted = ['preparing', 'ready'].includes(order.status);
+      let inventoryResolution = 'not_applicable';
+      if (preparationStarted) {
+        inventoryResolution = String(req.body?.inventory_resolution || '');
+        if (!['consumed', 'restocked'].includes(inventoryResolution)) {
+          throw httpError(400, 'Choose whether prepared ingredients were consumed or fully restocked.');
+        }
+        if (inventoryResolution === 'consumed') {
+          await deductOrderIngredients(conn, order, req.user.id);
+        } else {
+          await restockOrderIngredients(conn, order, req.user.id);
+        }
+      }
+
       await conn.query("UPDATE orders SET status = 'cancelled' WHERE id = ?", [order.id]);
       await conn.query(
-        'INSERT INTO order_cancellations (order_id, cancelled_by, previous_status, reason, payment_resolution) VALUES (?, ?, ?, ?, ?)',
-        [order.id, req.user.id, order.status, reason, paymentResolution]
+        `INSERT INTO order_cancellations
+           (order_id, cancelled_by, previous_status, reason, payment_resolution, inventory_resolution)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [order.id, req.user.id, order.status, reason, paymentResolution, inventoryResolution]
       );
+      const inventoryNote = inventoryResolution === 'consumed'
+        ? ' (ingredients consumed or wasted)'
+        : inventoryResolution === 'restocked'
+          ? ' (ingredients fully restocked)'
+          : '';
+      const activityDetails = `${order.order_no}: ${reason}${paymentResolution === 'refunded' ? ' (refunded)' : paymentResolution === 'not_refunded' ? ' (not refunded)' : ''}${inventoryNote}`.slice(0, 255);
       await logActivity(
         req.user.id,
         ownerApproved ? 'Order voided' : 'Order cancelled',
-        `${order.order_no}: ${reason}${paymentResolution === 'refunded' ? ' (refunded)' : paymentResolution === 'not_refunded' ? ' (not refunded)' : ''}`,
+        activityDetails,
         conn
       );
       await conn.commit();
-      res.json({ ok: true, status: 'cancelled', payment_resolution: paymentResolution });
+      res.json({ ok: true, status: 'cancelled', payment_resolution: paymentResolution, inventory_resolution: inventoryResolution });
     } catch (err) {
       await conn.rollback();
       throw err;
