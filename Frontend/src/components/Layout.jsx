@@ -8,10 +8,20 @@ import Icon from './Icon.jsx'
 export default function Layout() {
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
+  const [landscapeNavHidden, setLandscapeNavHidden] = useState(false)
   const location = useLocation()
 
   return (
-    <div className={`shell ${user.role === 'owner' ? 'owner-shell' : ''}`}>
+    <div className={`shell ${user.role === 'owner' ? 'owner-shell' : ''}${landscapeNavHidden ? ' landscape-nav-hidden' : ''}`}>
+      <button
+        className="landscape-nav-toggle"
+        type="button"
+        onClick={() => setLandscapeNavHidden((hidden) => !hidden)}
+        aria-label={landscapeNavHidden ? 'Show navigation' : 'Hide navigation'}
+        title={landscapeNavHidden ? 'Show navigation' : 'Hide navigation'}
+      >
+        <Icon name={landscapeNavHidden ? 'menu' : 'arrowLeft'} size={19} />
+      </button>
       <button className="menu-btn" onClick={() => setOpen(!open)} aria-label="Open menu">
         <Icon name="menu" size={22} />
       </button>

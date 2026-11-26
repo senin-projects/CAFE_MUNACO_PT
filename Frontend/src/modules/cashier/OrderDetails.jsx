@@ -64,7 +64,6 @@ export default function OrderDetails() {
   if (loading && !o) return <Loading />
   if (!o) return <ErrorBox message={error || 'Order not found.'} />
 
-  const ownerCanCancel = user.role === 'owner' && ['pending', 'sent', 'preparing', 'ready'].includes(o.status)
   const cashierCanCancel = user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'unpaid'
   const needsPaymentResolution = user.role === 'owner' && o.payment_status === 'paid'
   const needsInventoryResolution = user.role === 'owner' && ['preparing', 'ready'].includes(o.status)
@@ -114,7 +113,7 @@ export default function OrderDetails() {
         </>}
         {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'paid' && <button className="btn btn-primary" disabled={actionBusy} onClick={() => run(`/orders/${id}/send`, { method: 'POST' })}>{actionBusy ? 'Updating...' : 'Send to kitchen'}</button>}
         {user.role === 'cashier' && o.status === 'ready' && <button className="btn btn-primary" disabled={actionBusy} onClick={() => setStatus('served')}>{actionBusy ? 'Updating...' : 'Mark as served'}</button>}
-        {(ownerCanCancel || cashierCanCancel) && (
+        {cashierCanCancel && (
           <button
             className="btn"
             disabled={actionBusy}
