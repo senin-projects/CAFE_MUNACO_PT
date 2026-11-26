@@ -18,7 +18,7 @@ export const NAV = {
   ],
   owner: [
     { label: 'Overview', to: '/dashboard', icon: 'chart' },
-    { label: 'Orders', to: '/orders', icon: 'list' },
+    { label: 'Orders', to: '/orders', icon: 'receipt' },
     { label: 'Inventory', to: '/inventory', icon: 'box' },
     { label: 'User Management', to: '/users', icon: 'users' },
   ],

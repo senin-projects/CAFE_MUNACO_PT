@@ -15,6 +15,8 @@ export default function Users() {
   const [form, setForm] = useState(BLANK)
   const [formError, setFormError] = useState('')
   const [actionError, setActionError] = useState('')
+  const [confirmUser, setConfirmUser] = useState(null)
+  const [actionBusy, setActionBusy] = useState(false)
 
   const set = (f) => (e) => setForm({ ...form, [f]: e.target.value })
   const open = (mode, user) => {
@@ -39,13 +41,15 @@ export default function Users() {
 
   async function toggle(u) {
     setActionError('')
-    const verb = u.is_active ? 'Deactivate' : 'Reactivate'
-    if (!window.confirm(`${verb} ${u.full_name}?${u.is_active ? ' They will be signed out and cannot sign in again.' : ''}`)) return
+    setActionBusy(true)
     try {
       await api(`/users/${u.id}/active`, { method: 'PATCH', body: { is_active: !u.is_active } })
+      setConfirmUser(null)
       reload()
     } catch (err) {
       setActionError(err.message)
+    } finally {
+      setActionBusy(false)
     }
   }
 
@@ -75,7 +79,10 @@ export default function Users() {
                     {u.id !== me.id && (
                       <button
                         className={`icon-button ${u.is_active ? 'icon-button-danger' : ''}`}
-                        onClick={() => toggle(u)}
+                        onClick={() => {
+                          setActionError('')
+                          setConfirmUser(u)
+                        }}
                         aria-label={`${u.is_active ? 'Deactivate' : 'Reactivate'} ${u.full_name}`}
                         title={u.is_active ? 'Deactivate' : 'Reactivate'}
                       >
@@ -113,6 +120,49 @@ export default function Users() {
               <button type="button" className="btn" onClick={() => setModal(null)}>Cancel</button>
             </div>
           </form>
+        </Modal>
+      )}
+      {confirmUser && (
+        <Modal
+          title="Confirm account change"
+          eyebrow="USER MANAGEMENT"
+          className="user-action-modal"
+          showCloseButton
+          onClose={() => {
+            if (!actionBusy) {
+              setConfirmUser(null)
+              setActionError('')
+            }
+          }}
+        >
+          <ErrorBox message={actionError} />
+          <div className="user-confirm-panel">
+            <div className={`user-confirm-icon ${confirmUser.is_active ? 'is-deactivating' : 'is-reactivating'}`}>
+              <Icon name={confirmUser.is_active ? 'userX' : 'userCheck'} size={21} />
+            </div>
+            <div className="user-confirm-copy">
+              <div className="user-confirm-employee">
+                <strong>{confirmUser.full_name}</strong>
+                <span className={`badge ${confirmUser.is_active ? 'stock-ok' : 'badge-cancelled'}`}>
+                  {confirmUser.is_active ? 'Active' : 'Deactivated'}
+                </span>
+              </div>
+              <p>{confirmUser.is_active
+                ? 'This employee will be signed out and lose access until reactivated.'
+                : 'This employee will regain access and be able to sign in again.'}</p>
+            </div>
+          </div>
+          <div className="user-confirm-actions">
+            <button type="button" className="btn" disabled={actionBusy} onClick={() => setConfirmUser(null)}>Cancel</button>
+            <button
+              type="button"
+              className={`btn ${confirmUser.is_active ? 'btn-danger' : 'btn-primary'}`}
+              disabled={actionBusy}
+              onClick={() => toggle(confirmUser)}
+            >
+              {actionBusy ? 'Updating...' : confirmUser.is_active ? 'Deactivate account' : 'Reactivate account'}
+            </button>
+          </div>
         </Modal>
       )}
     </>

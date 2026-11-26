@@ -44,11 +44,15 @@ export default function Layout() {
         </nav>
 
         <div className="who">
-          <strong>{user.full_name}</strong>
-          <span>{ROLE_LABEL[user.role]}</span>
-          <button onClick={logout}>
-            <Icon name="logout" size={16} /> Sign out
-          </button>
+          <div className="who-profile">
+            <div className="who-identity">
+              <strong>{user.full_name}</strong>
+              <span>{ROLE_LABEL[user.role]}</span>
+            </div>
+            <button className="who-logout-icon" onClick={logout} aria-label="Sign out" title="Sign out">
+              <Icon name="logout" size={18} />
+            </button>
+          </div>
         </div>
       </aside>
 
