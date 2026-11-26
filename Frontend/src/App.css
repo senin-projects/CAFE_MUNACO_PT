@@ -116,7 +116,7 @@ input.search { width: 100%; }
 /* ---------- tables ---------- */
 .table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; margin-bottom: 16px; }
 .table-wrap.flat { border: 0; margin: 0; }
-.table-wrap.kitchen-history-wrap { overflow-x: auto; overflow-y: hidden; }
+.table-wrap.kitchen-history-wrap { overflow-x: hidden; overflow-y: hidden; }
 .orders-table-wrap { overflow-x: hidden; }
 .orders-table { table-layout: fixed; }
 .orders-table th, .orders-table td { white-space: normal; overflow-wrap: anywhere; }
@@ -167,7 +167,7 @@ tfoot td { border-top: 2px solid var(--line); border-bottom: 0; text-align: righ
 .stock-history-table th:nth-child(7) { width: 11%; }
 .stock-history-table td:nth-child(3) { text-align: center; }
 .stock-history-table td:nth-child(6) { white-space: normal; overflow-wrap: anywhere; }
-.kitchen-history-table { width: 100%; min-width: 760px; table-layout: fixed; }
+.kitchen-history-table { width: 100%; min-width: 0; table-layout: fixed; }
 .kitchen-history-table th, .kitchen-history-table td { padding: 13px 16px; }
 .kitchen-history-col-order { width: 20%; }
 .kitchen-history-col-customer { width: 32%; }
@@ -319,12 +319,11 @@ tr.inactive td { color: var(--muted); }
 
 /* ---------- kitchen tickets ---------- */
 .tickets { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
-.ticket { position: relative; background: var(--panel); border: 1px solid var(--line); border-top: 5px solid var(--harbor-2); border-radius: 4px 4px 10px 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.ticket { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
 .ticket-items { margin: 0; padding: 0; list-style: none; }
 .ticket-items-measure { position: absolute; top: 0; left: -10000px; visibility: hidden; pointer-events: none; }
 .ticket-clickable { cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
 .ticket-clickable:hover, .ticket-clickable:focus-visible { border-color: var(--harbor-2); box-shadow: 0 3px 12px #39251d20; }
-.ticket.has-request { border-top-color: #d9b61f; }
 .reservation-highlight { display: inline-block; padding: 4px 9px; border: 1px solid #deb75d; border-radius: 99px; background: #fff2c9; color: #7d5500; font-weight: 700; }
 .reservation-row { background: #fffaf0; box-shadow: inset 4px 0 #d79b24; }
 .reservation-schedule { min-width: 0; margin: 0; display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; align-items: center; gap: 7px; padding: 5px 7px; border: 1px solid #e4c56f; border-radius: 7px; background: #fff2c2; color: #73521a; line-height: 1.15; }
@@ -650,8 +649,7 @@ tbody tr:hover { background: #fcf8f0; }
 .qty-btn:hover { background: #f5eddf; border-color: #cdbb9e; }
 
 .tickets { gap: 16px; }
-.ticket { padding: 18px; border: 1px solid #e9e0d2; border-top: 4px solid var(--harbor-2); border-radius: 13px; box-shadow: var(--shadow-sm); }
-.ticket.has-request { border-top-color: #c49b35; }
+.ticket { padding: 18px; border: 1px solid #e9e0d2; border-radius: 13px; box-shadow: var(--shadow-sm); }
 .ticket-clickable:hover, .ticket-clickable:focus-visible { border-color: #ae8a56; box-shadow: var(--shadow-md); transform: translateY(-2px); }
 .ticket header strong, .order-row strong, .order-number { font-family: var(--font-body); font-size: .96rem; font-weight: 800; letter-spacing: .025em; font-variant-numeric: tabular-nums; }
 .order-number { font-size: inherit; }

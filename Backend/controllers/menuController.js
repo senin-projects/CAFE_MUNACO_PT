@@ -193,9 +193,9 @@ router.delete(
   wrap(async (req, res) => {
     const [[item]] = await pool.query('SELECT id, name FROM menu_items WHERE id = ?', [req.params.id]);
     if (!item) throw httpError(404, 'Menu item not found.');
-    await pool.query('UPDATE menu_items SET is_available = 0 WHERE id = ?', [req.params.id]);
-    await logActivity(req.user.id, 'Menu item archived', `${item.name} hidden from new orders`);
-    res.json({ ok: true, is_available: false });
+    await pool.query('DELETE FROM menu_items WHERE id = ?', [req.params.id]);
+    await logActivity(req.user.id, 'Menu item deleted', item.name);
+    res.json({ ok: true });
   })
 );
 

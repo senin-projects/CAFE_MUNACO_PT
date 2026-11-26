@@ -165,7 +165,7 @@ export default function MenuManagement() {
   }
 
   async function remove(item) {
-    if (!window.confirm(`Archive ${item.name}? It will no longer be available for new orders, and existing order history and recipes will be preserved.`)) return
+    if (!window.confirm(`Delete ${item.name}? Its recipe will be removed, but existing order history will be preserved.`)) return
     setActionError('')
     try {
       await api(`/menu/${item.id}`, { method: 'DELETE' })
@@ -225,8 +225,8 @@ export default function MenuManagement() {
                       <button type="button" className="icon-button" onClick={() => open(item)} aria-label={`Edit ${item.name}`} title="Edit">
                         <Icon name="edit" size={17} />
                       </button>
-                      <button type="button" className="icon-button" onClick={() => remove(item)} aria-label={`Archive ${item.name}`} title="Archive">
-                        <Icon name="archive" size={17} />
+                      <button type="button" className="icon-button icon-button-danger" onClick={() => remove(item)} aria-label={`Delete ${item.name}`} title="Delete">
+                        <Icon name="trash" size={17} />
                       </button>
                     </span>
                   </td>

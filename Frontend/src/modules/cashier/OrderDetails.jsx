@@ -98,12 +98,17 @@ export default function OrderDetails() {
   return (
     <>
       <PageHeader title={<span className="order-number">{o.order_no}</span>} subtitle={ORDER_TYPES[o.order_type]}>
+        <StatusBadge status={o.status} />
         {user.role === 'kitchen' && (
-          <Link className="btn" to={location.state?.from === '/kitchen/history' ? '/kitchen/history' : '/kitchen/orders'}>
-            {location.state?.from === '/kitchen/history' ? 'Back to Order History' : 'Back to Orders'}
+          <Link
+            className="icon-button"
+            to={location.state?.from === '/kitchen/history' ? '/kitchen/history' : '/kitchen/orders'}
+            aria-label={location.state?.from === '/kitchen/history' ? 'Back to Order History' : 'Back to Orders'}
+            title={location.state?.from === '/kitchen/history' ? 'Back to Order History' : 'Back to Orders'}
+          >
+            <Icon name="arrowLeft" size={18} />
           </Link>
         )}
-        <StatusBadge status={o.status} />
         {user.role === 'cashier' && o.status === 'pending' && o.payment_status === 'unpaid' && (
           <Link className="btn" to={`/orders/${o.id}/edit`}>Edit order</Link>
         )}
@@ -127,7 +132,7 @@ export default function OrderDetails() {
             Cancel order
           </button>
         )}
-        {user.role !== 'kitchen' && <button className="btn" onClick={() => setReceiptOpen(true)}>Print receipt</button>}
+        {user.role === 'cashier' && <button className="btn" onClick={() => setReceiptOpen(true)}>Print receipt</button>}
         {user.role !== 'kitchen' && (
           <Link className="icon-button" to="/orders" aria-label="Back to Orders" title="Back to Orders">
             <Icon name="arrowLeft" size={18} />
