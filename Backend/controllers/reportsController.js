@@ -16,14 +16,20 @@ router.get(
     const days = Math.min(Math.max(Number(req.query.days) || 30, 1), 365);
 
     const [totals] = await rows(
-      `SELECT COUNT(*) AS orders, COALESCE(SUM(total), 0) AS sales, COALESCE(AVG(total), 0) AS average
+      `SELECT COUNT(*) AS orders, COALESCE(SUM(total), 0) AS sales
        FROM orders WHERE status = 'served' AND served_at >= NOW() - INTERVAL ? DAY`,
+      [days]
+    );
+    const [itemsSold] = await rows(
+      `SELECT COALESCE(SUM(oi.quantity), 0) AS items_sold
+       FROM order_items oi JOIN orders o ON o.id = oi.order_id
+       WHERE o.status = 'served' AND o.served_at >= NOW() - INTERVAL ? DAY`,
       [days]
     );
 
     res.json({
       days,
-      totals,
+      totals: { ...totals, items_sold: itemsSold.items_sold },
       overview: (await rows(
         `SELECT COALESCE(SUM(CASE WHEN DATE(served_at) = CURDATE() THEN total ELSE 0 END), 0) AS sales_today,
                 COALESCE(SUM(total), 0) AS total_revenue

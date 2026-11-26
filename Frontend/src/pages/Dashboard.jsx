@@ -1,9 +1,10 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth.jsx'
 import { useFetch } from '../hooks.js'
 import { Empty, ErrorBox, Loading, PageHeader, StatCard, StatusBadge } from '../components/ui.jsx'
 import { ORDER_TYPES, STATUS_LABEL, dateTime, peso, qty, timeAgo } from '../utils.js'
 import KitchenDashboard from '../modules/kitchen/KitchenDashboard.jsx'
+import Reports from '../modules/owner/Reports.jsx'
 
 const greeting = () => {
   const h = new Date().getHours()
@@ -12,14 +13,63 @@ const greeting = () => {
 
 export default function Dashboard() {
   const { user } = useAuth()
-  const { data, error, loading } = useFetch('/dashboard', { poll: 15000 })
+  const [searchParams, setSearchParams] = useSearchParams()
+  const ownerTab = searchParams.get('tab') === 'analytics' ? 'analytics' : 'overview'
+  const { data, error, loading } = useFetch('/dashboard', {
+    poll: user.role === 'owner' && ownerTab === 'analytics' ? undefined : 15000,
+  })
+
+  function selectOwnerTab(tab) {
+    const next = new URLSearchParams(searchParams)
+    if (tab === 'overview') next.delete('tab')
+    else next.set('tab', tab)
+    setSearchParams(next)
+  }
 
   return (
     <>
-      <PageHeader title={`${greeting()}, ${user.full_name.split(' ')[0]}`} subtitle={new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} />
-      <ErrorBox message={error} />
-      {loading && !data ? <Loading /> : data && (
-        user.role === 'kitchen' ? <KitchenDashboard data={data} /> : <Body role={user.role} d={data} />
+      <PageHeader title={user.role === 'owner' ? 'Overview' : `${greeting()}, ${user.full_name.split(' ')[0]}`} subtitle={new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} />
+      {user.role === 'owner' ? (
+        <>
+          <div className="stock-tabs owner-overview-tabs" role="tablist" aria-label="Owner overview">
+            <button
+              id="owner-overview-tab"
+              type="button"
+              role="tab"
+              aria-selected={ownerTab === 'overview'}
+              aria-controls="owner-overview-panel"
+              className={ownerTab === 'overview' ? 'active' : ''}
+              onClick={() => selectOwnerTab('overview')}
+            >
+              Overview
+            </button>
+            <button
+              id="owner-analytics-tab"
+              type="button"
+              role="tab"
+              aria-selected={ownerTab === 'analytics'}
+              aria-controls="owner-analytics-panel"
+              className={ownerTab === 'analytics' ? 'active' : ''}
+              onClick={() => selectOwnerTab('analytics')}
+            >
+              Analytics
+            </button>
+          </div>
+          <section id="owner-overview-panel" role="tabpanel" aria-labelledby="owner-overview-tab" hidden={ownerTab !== 'overview'}>
+            <ErrorBox message={error} />
+            {loading && !data ? <Loading /> : data && <Body role={user.role} d={data} />}
+          </section>
+          <section id="owner-analytics-panel" role="tabpanel" aria-labelledby="owner-analytics-tab" hidden={ownerTab !== 'analytics'}>
+            {ownerTab === 'analytics' && <Reports />}
+          </section>
+        </>
+      ) : (
+        <>
+          <ErrorBox message={error} />
+          {loading && !data ? <Loading /> : data && (
+            user.role === 'kitchen' ? <KitchenDashboard data={data} /> : <Body role={user.role} d={data} />
+          )}
+        </>
       )}
     </>
   )

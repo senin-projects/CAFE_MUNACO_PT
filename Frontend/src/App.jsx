@@ -16,14 +16,8 @@ import StockForm from './modules/inventory/StockForm.jsx'
 import StockHistory from './modules/inventory/StockHistory.jsx'
 import InventoryModule from './modules/inventory/InventoryModule.jsx'
 import StockManagement from './modules/inventory/StockManagement.jsx'
-import Reports from './modules/owner/Reports.jsx'
 import Users from './modules/owner/Users.jsx'
 import MenuManagement from './modules/owner/MenuManagement.jsx'
-
-function Home() {
-  const { user } = useAuth()
-  return user.role === 'owner' ? <Reports /> : <Dashboard />
-}
 
 // Only lets the listed roles open a page (the server checks again for every request)
 function Only({ roles, children }) {
@@ -47,7 +41,8 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route element={<Layout />}>
-        <Route path="/dashboard" element={<Home />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/analytics" element={<Navigate to="/dashboard?tab=analytics" replace />} />
         <Route path="/profile" element={<Profile />} />
 
         {/* Orders: cashier and owner (kitchen can open a single order) */}
@@ -87,7 +82,7 @@ export default function App() {
 
         {/* Owner */}
         <Route path="/inventory-overview" element={<Only roles={['owner']}><Navigate to="/inventory?tab=overview" replace /></Only>} />
-        <Route path="/reports" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/reports" element={<Navigate to="/dashboard?tab=analytics" replace />} />
         <Route path="/users" element={<Only roles={['owner']}><Users /></Only>} />
         <Route path="/menu-management" element={<Only roles={['owner', 'kitchen']}><MenuManagement /></Only>} />
 

@@ -226,7 +226,7 @@ export default function Reports() {
 
   return (
     <div className="reports-page">
-      <PageHeader title="Overview" subtitle="Sales from orders marked as served." className="report-page-head">
+      <PageHeader title="Sales analytics" subtitle="Sales trends from orders marked as served." className="report-page-head">
         <select value={days} onChange={(e) => setDays(e.target.value)} aria-label="Daily sales period">
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
@@ -253,7 +253,7 @@ export default function Reports() {
               <StatCard label="Sales today" value={peso(r.overview.sales_today)} />
               <StatCard label={`Sales (last ${days} days)`} value={peso(r.totals.sales)} />
               <StatCard label="Orders served" value={qty(r.totals.orders)} />
-              <StatCard label="Average order" value={peso(r.totals.average)} />
+              <StatCard label="Products sold" value={qty(r.totals.items_sold)} />
             </div>
           </div>
 
