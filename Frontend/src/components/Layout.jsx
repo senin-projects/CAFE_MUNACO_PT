@@ -5,6 +5,7 @@ import { NAV } from '../nav.js'
 import { ROLE_LABEL } from '../utils.js'
 import Icon from './Icon.jsx'
 
+// [WBS 5.1.2] Implement role-based access.
 export default function Layout() {
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)

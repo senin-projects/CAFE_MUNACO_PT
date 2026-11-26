@@ -7,6 +7,8 @@ import { Empty, ErrorBox, Loading, PageHeader, StatusBadge } from '../../compone
 import { ORDER_TYPES, STATUS_LABEL, dateTime, peso, qty } from '../../utils.js'
 
 // Used for "Order List" (cashier) and "Orders" (owner)
+// [WBS 1.2.1] Display order list and order details.
+// [WBS 4.3.1] Owner order monitoring reuses this role-aware list.
 export default function OrderList() {
   const navigate = useNavigate()
   const { user } = useAuth()

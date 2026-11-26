@@ -1,3 +1,4 @@
+// Shared request validation/error utilities used by cashier, kitchen, inventory, owner, and auth handlers.
 export const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 export function httpError(status, message) {

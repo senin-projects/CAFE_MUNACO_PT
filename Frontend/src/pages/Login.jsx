@@ -3,6 +3,7 @@ import { useAuth } from '../auth.jsx'
 import { ErrorBox } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 
+// [WBS 5.1.1] Implement login and session handling.
 export default function Login() {
   const { login } = useAuth()
   const [username, setUsername] = useState('')

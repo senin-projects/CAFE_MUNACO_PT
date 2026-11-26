@@ -1,14 +1,15 @@
 import { Router } from 'express';
-import { getRouteHandlerChain } from './routeHandlers.js';
-import { pool } from '../config/db.js';
-import { requireRole } from '../middleware/auth.js';
-import { wrap, httpError } from '../utils/http.js';
-import { logActivity } from '../services/activityService.js';
-import { getMenuInventoryAvailability } from '../services/orderInventoryService.js';
-import { areUnitsCompatible } from '../../Shared/units.js';
+import { getRouteHandlerChain } from '../../../controllers/routeHandlers.js';
+import { pool } from '../../../config/db.js';
+import { requireRole } from '../../../middleware/auth.js';
+import { wrap, httpError } from '../../../utils/http.js';
+import { logActivity } from '../../../services/activityService.js';
+import { getMenuInventoryAvailability } from '../../../services/orderInventoryService.js';
+import { areUnitsCompatible } from '../../../../Shared/units.js';
 
 const router = Router();
 
+// [WBS 2.2.1] Implement menu item create, update, delete, and availability.
 function validateMenuItem(body = {}) {
   const name = String(body.name || '').trim();
   const category = String(body.category || '').trim();
@@ -23,6 +24,7 @@ function validateMenuItem(body = {}) {
   return { name, category, price, is_available };
 }
 
+// [WBS 2.2.2] Implement ingredient recipes per menu item.
 function validateRecipe(ingredients) {
   if (!Array.isArray(ingredients)) throw httpError(400, 'Ingredients must be a list.');
   if (!ingredients.length) throw httpError(400, 'Add at least one tracked ingredient to the menu item recipe.');
@@ -46,6 +48,7 @@ function validateRecipe(ingredients) {
   });
 }
 
+// [WBS 2.2.2] Implement ingredient recipes per menu item.
 async function saveRecipe(conn, menuItemId, ingredients) {
   const ids = ingredients.map((ingredient) => ingredient.ingredient_id);
   const inventory = ids.length

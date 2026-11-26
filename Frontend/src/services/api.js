@@ -1,4 +1,4 @@
-// Small wrapper around fetch(): adds the login token and turns errors into messages.
+// Shared request helper for all module APIs; [WBS 5.1.1] also manages login tokens and expired sessions.
 const TOKEN_KEY = 'munaco_token'
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY)

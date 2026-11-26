@@ -8,6 +8,7 @@ import { qty } from '../../utils.js'
 const OUT_REASONS = ['Used in kitchen', 'Spoiled', 'Wasted', 'Returned to supplier', 'Event or advance order', 'Other']
 
 // "Stock In" (type="in") and "Stock Out" (type="out")
+// [WBS 3.2.1] Record stock-in and stock-out.
 export default function StockForm({ type, embedded = false }) {
   const [params] = useSearchParams()
   const { data: items, error: loadError, reload } = useFetch('/inventory')

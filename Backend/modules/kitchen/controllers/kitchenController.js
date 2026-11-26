@@ -1,14 +1,16 @@
 import { Router } from 'express';
-import { pool } from '../config/db.js';
-import { requireRole } from '../middleware/auth.js';
-import { wrap, httpError } from '../utils/http.js';
-import { logActivity } from '../services/activityService.js';
-import { getAllowedOrderTransition } from '../services/orderService.js';
-import { getRouteHandlerChain } from './routeHandlers.js';
-import { deductOrderIngredients } from '../services/orderInventoryService.js';
+import { pool } from '../../../config/db.js';
+import { requireRole } from '../../../middleware/auth.js';
+import { wrap, httpError } from '../../../utils/http.js';
+import { logActivity } from '../../../services/activityService.js';
+import { getAllowedOrderTransition } from '../../../services/orderService.js';
+import { getRouteHandlerChain } from '../../../controllers/routeHandlers.js';
+import { deductOrderIngredients } from '../../../services/orderInventoryService.js';
 
 const router = Router();
 
+// [WBS 2.1.2] Implement order preparation status updates.
+// [WBS 1.2.2] Implement serving and cancelling of orders.
 // ---------------------------------------------------------------- status (kitchen: preparing/ready, cashier: served)
 router.patch(
   '/:id/status',

@@ -8,6 +8,7 @@ const TABS = [
   { id: 'history', label: 'Stock History' },
 ]
 
+// [WBS 4.3.2] View inventory overview and stock history.
 export default function InventoryModule({ readOnly = true }) {
   const [params, setParams] = useSearchParams()
   const activeTab = TABS.some((tab) => tab.id === params.get('tab')) ? params.get('tab') : 'overview'

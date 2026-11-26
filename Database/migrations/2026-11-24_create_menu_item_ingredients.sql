@@ -1,3 +1,4 @@
+-- [WBS 2.2.2] Store compatible ingredient recipes per menu item.
 CREATE TABLE IF NOT EXISTS menu_item_ingredients (
   menu_item_id       INT NOT NULL,
   ingredient_id      INT NOT NULL,

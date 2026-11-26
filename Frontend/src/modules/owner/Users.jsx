@@ -8,6 +8,8 @@ import { ROLE_LABEL, dateOnly } from '../../utils.js'
 
 const BLANK = { full_name: '', username: '', role: 'cashier', password: '' }
 
+// [WBS 4.4.1] Implement staff account create, update, and activate or deactivate.
+// [WBS 4.4.2] Implement staff password reset.
 export default function Users() {
   const { user: me } = useAuth()
   const { data, error, loading, reload } = useFetch('/users')

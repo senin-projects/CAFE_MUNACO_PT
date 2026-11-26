@@ -1,3 +1,6 @@
+// [WBS 5.1.1] Load staff credentials and current session users.
+// [WBS 5.1.3] Persist authenticated profile changes.
+// [WBS 4.4.1] Staff accounts share the same user records.
 import { pool } from '../config/db.js';
 
 export async function findById(id) {

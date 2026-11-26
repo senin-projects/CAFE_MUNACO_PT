@@ -5,6 +5,8 @@ import { Empty, ErrorBox, Loading, PageHeader } from '../../components/ui.jsx'
 import { dateTime, qty } from '../../utils.js'
 
 // Shared by inventory staff and the owner (both read-only)
+// [WBS 3.2.2] Display stock movement history.
+// [WBS 4.3.2] Owner inventory history reuses this read-only view.
 export default function StockHistory({ embedded = false }) {
   const [q, setQ] = useState('')
   const [type, setType] = useState('')

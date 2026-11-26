@@ -1,3 +1,7 @@
+// Shared by cashier validation/sending, kitchen preparation, inventory, and owner cancellation.
+// [WBS 1.1.2] Recheck stock and snapshot recipes before sending paid orders.
+// [WBS 2.1.2] Deduct snapshotted ingredients when preparation starts.
+// [WBS 3.2.3] Convert, deduct, restock, and record ordered-item ingredients.
 import { convertUnitQuantity, roundStockQuantity } from '../../Shared/units.js';
 import { logActivity } from './activityService.js';
 import { httpError } from '../utils/http.js';

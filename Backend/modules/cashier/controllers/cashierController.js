@@ -1,15 +1,16 @@
 import { Router } from 'express';
-import { pool } from '../config/db.js';
-import { requireRole } from '../middleware/auth.js';
-import { wrap, httpError } from '../utils/http.js';
-import { logActivity } from '../services/activityService.js';
-import { replaceOrderItems } from '../models/orderModel.js';
-import { validateOrder } from '../services/orderService.js';
-import { snapshotOrderRecipe } from '../services/orderInventoryService.js';
-import { getRouteHandlerChain } from './routeHandlers.js';
+import { pool } from '../../../config/db.js';
+import { requireRole } from '../../../middleware/auth.js';
+import { wrap, httpError } from '../../../utils/http.js';
+import { logActivity } from '../../../services/activityService.js';
+import { replaceOrderItems } from '../../../models/orderModel.js';
+import { validateOrder } from '../../../services/orderService.js';
+import { snapshotOrderRecipe } from '../../../services/orderInventoryService.js';
+import { getRouteHandlerChain } from '../../../controllers/routeHandlers.js';
 
 const router = Router();
 
+// [WBS 1.1.1] Implement order creation and editing.
 // ---------------------------------------------------------------- create (cashier)
 router.post(
   '/',
@@ -55,6 +56,7 @@ router.post(
   })
 );
 
+// [WBS 1.1.1] Implement order creation and editing.
 // ---------------------------------------------------------------- edit (cashier, only before it is sent)
 router.put(
   '/:id',
@@ -97,6 +99,7 @@ router.put(
   })
 );
 
+// [WBS 1.1.2] Implement payment and sending to kitchen.
 // ---------------------------------------------------------------- payment (cashier)
 router.post(
   '/:id/payment',
@@ -115,6 +118,7 @@ router.post(
   })
 );
 
+// [WBS 1.1.2] Implement payment and sending to kitchen.
 // ---------------------------------------------------------------- send to kitchen (cashier)
 router.post(
   '/:id/send',

@@ -9,6 +9,8 @@ import { HAS_TABLE, NEEDS_SCHEDULE, ORDER_TYPES, peso, qty, toLocalInput } from 
 const BLANK = { customer_name: '', order_type: 'dine_in', table_no: '', guests: '', scheduled_at: '', special_requests: '' }
 
 // One screen for both "New Order" and "Edit order" (when the address has an :id)
+// [WBS 1.1.1] Implement order creation and editing.
+// [WBS 1.1.2] Implement payment and sending to kitchen.
 export default function NewOrder() {
   const { id } = useParams()
   const navigate = useNavigate()

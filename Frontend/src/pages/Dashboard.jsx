@@ -11,6 +11,11 @@ const greeting = () => {
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
 }
 
+// Shared role-specific dashboard entry point.
+// [WBS 1.3.1] Display cashier dashboard summary.
+// [WBS 2.3.1] Display kitchen dashboard summary.
+// [WBS 3.3.1] Display low-stock items and inventory dashboard.
+// [WBS 4.1.1] Display owner overview dashboard.
 export default function Dashboard() {
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -94,6 +99,7 @@ function Body({ role, d }) {
     },
   })
 
+  // [WBS 1.3.1] Display the cashier dashboard summary.
   if (role === 'cashier')
     return (
       <>
@@ -132,6 +138,7 @@ function Body({ role, d }) {
       </>
     )
 
+  // [WBS 3.3.1] Display the inventory dashboard summary and low-stock items.
   if (role === 'inventory')
     return (
       <>
@@ -171,7 +178,7 @@ function Body({ role, d }) {
       </>
     )
 
-  // owner
+  // [WBS 4.1.1] Display the owner overview dashboard.
   return (
     <>
       <div className="stats">

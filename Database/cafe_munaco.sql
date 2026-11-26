@@ -10,6 +10,7 @@ DROP TABLE IF EXISTS order_cancellations, notification_reads, activity_log, stoc
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ---------------------------------------------------------------- users
+-- [WBS 5.1.1] Login and session handling; [WBS 5.1.2] role values; [WBS 4.4.1-4.4.2] shared staff accounts.
 CREATE TABLE users (
   id            INT AUTO_INCREMENT PRIMARY KEY,
   full_name     VARCHAR(100) NOT NULL,
@@ -20,6 +21,7 @@ CREATE TABLE users (
   created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- [WBS 4.1.2] Persist read state for notifications shared by all staff roles.
 CREATE TABLE notification_reads (
   user_id          INT          NOT NULL,
   notification_key VARCHAR(100) NOT NULL,
@@ -29,6 +31,7 @@ CREATE TABLE notification_reads (
 );
 
 -- ---------------------------------------------------------------- menu
+-- [WBS 2.2.1] Menu items; [WBS 2.2.2] ingredient recipes.
 CREATE TABLE menu_items (
   id           INT AUTO_INCREMENT PRIMARY KEY,
   name         VARCHAR(100)  NOT NULL,
@@ -38,6 +41,7 @@ CREATE TABLE menu_items (
 );
 
 -- ---------------------------------------------------------------- orders
+-- [WBS 1.1.1-1.2.2] Cashier orders and lifecycle; [WBS 2.1.2] kitchen status; [WBS 4.3.1] owner cancellation.
 CREATE TABLE orders (
   id               INT AUTO_INCREMENT PRIMARY KEY,
   order_no         VARCHAR(30)  NOT NULL UNIQUE,
@@ -93,6 +97,7 @@ CREATE TABLE order_items (
 );
 
 -- ---------------------------------------------------------------- inventory
+-- [WBS 3.1.1-3.3.1] Shared inventory records, stock history, recipe tracking, and low-stock data.
 CREATE TABLE inventory_items (
   id            INT AUTO_INCREMENT PRIMARY KEY,
   name          VARCHAR(100) NOT NULL UNIQUE,
@@ -122,6 +127,7 @@ CREATE TABLE stock_movements (
   INDEX idx_created (created_at)
 );
 
+-- [WBS 2.2.2] Store validated ingredient recipes.
 CREATE TABLE menu_item_ingredients (
   menu_item_id       INT NOT NULL,
   ingredient_id      INT NOT NULL,
@@ -133,6 +139,7 @@ CREATE TABLE menu_item_ingredients (
   FOREIGN KEY (ingredient_id) REFERENCES inventory_items(id) ON DELETE RESTRICT
 );
 
+-- [WBS 1.1.2, 2.1.2, 3.2.3] Preserve the recipe quantities used for each sent order.
 CREATE TABLE order_item_ingredients (
   order_item_id       INT NOT NULL,
   ingredient_id       INT NOT NULL,
@@ -147,6 +154,7 @@ CREATE TABLE order_item_ingredients (
 );
 
 -- ---------------------------------------------------------------- activity log (owner monitors this)
+-- [WBS 4.1.1] Owner activity monitoring; module actions write to this shared log.
 CREATE TABLE activity_log (
   id         INT AUTO_INCREMENT PRIMARY KEY,
   user_id    INT NOT NULL,

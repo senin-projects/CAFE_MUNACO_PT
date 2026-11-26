@@ -7,6 +7,7 @@ const ORDER_STAGES = [
   { status: 'ready', label: 'Ready' },
 ]
 
+// [WBS 2.1.1] Display incoming, preparing, and ready orders.
 export default function KitchenOrders() {
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedStatus = searchParams.get('status')

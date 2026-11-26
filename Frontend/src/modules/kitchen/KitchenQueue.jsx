@@ -7,6 +7,9 @@ import Icon from '../../components/Icon.jsx'
 import { ORDER_TYPES, dateTime, timeAgo, qty } from '../../utils.js'
 
 // One screen for Incoming / Preparing / Ready / History. Only `status` changes.
+// [WBS 2.1.1] Display incoming, preparing, and ready orders.
+// [WBS 2.1.2] Implement order preparation status updates.
+// [WBS 2.1.3] Display kitchen order history.
 export default function KitchenQueue({ status, title, empty, history, toolbar }) {
   const navigate = useNavigate()
   const { data, error, loading, reload } = useFetch(`/orders?status=${status}&items=1&sort=${history ? 'newest' : 'oldest'}`, { poll: 10000 })

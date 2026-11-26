@@ -1,14 +1,15 @@
 import { Router } from 'express';
-import { getRouteHandlerChain } from './routeHandlers.js';
-import { pool } from '../config/db.js';
-import { requireRole } from '../middleware/auth.js';
-import { wrap, httpError, isBlank } from '../utils/http.js';
-import { logActivity } from '../services/activityService.js';
-import { makeStockedMenuItemsAvailable } from '../services/orderInventoryService.js';
+import { getRouteHandlerChain } from '../../../controllers/routeHandlers.js';
+import { pool } from '../../../config/db.js';
+import { requireRole } from '../../../middleware/auth.js';
+import { wrap, httpError, isBlank } from '../../../utils/http.js';
+import { logActivity } from '../../../services/activityService.js';
+import { makeStockedMenuItemsAvailable } from '../../../services/orderInventoryService.js';
 
 const router = Router();
 
 const CATEGORIES = ['Seafood', 'Meat', 'Vegetables', 'Dairy', 'Dry Goods', 'Beverages', 'Other'];
+// Owner read access serves the shared overview/history workflow in WBS 4.3.2.
 const READERS = ['inventory', 'owner', 'kitchen'];
 
 const num = (v, label) => {
@@ -19,6 +20,7 @@ const num = (v, label) => {
 
 const status = (item) => (item.quantity <= 0 ? 'out' : item.quantity <= item.reorder_level ? 'low' : 'ok');
 
+// [WBS 3.1.1] Implement inventory item create, update, and delete.
 // ---------------------------------------------------------------- list  (?q= ?category= ?fresh=1 ?low=1)
 router.get(
   '/',
@@ -45,6 +47,7 @@ router.get(
   })
 );
 
+// [WBS 3.3.1] Return items at or below their reorder level.
 router.get(
   '/low',
   requireRole(...READERS),
@@ -56,6 +59,7 @@ router.get(
   })
 );
 
+// [WBS 3.2.2] Display stock movement history.
 // ---------------------------------------------------------------- movement history (must be before /:id)
 // ?type=in|out  ?item_id=  ?q=item name  ?days=30
 router.get(
@@ -104,6 +108,7 @@ router.get(
   })
 );
 
+// [WBS 3.1.1] Implement inventory item create, update, and delete.
 // ---------------------------------------------------------------- add item (inventory)
 router.post(
   '/',
@@ -144,6 +149,7 @@ router.post(
   })
 );
 
+// [WBS 3.1.1] Implement inventory item create, update, and delete.
 // ---------------------------------------------------------------- edit details (inventory). Quantity changes go through stock in/out.
 router.put(
   '/:id',
@@ -191,6 +197,7 @@ router.put(
   })
 );
 
+// [WBS 3.1.1] Implement inventory item create, update, and delete.
 // ---------------------------------------------------------------- delete item (inventory)
 router.delete(
   '/:id',
@@ -244,6 +251,7 @@ router.delete(
   })
 );
 
+// [WBS 3.2.1] Record stock-in and stock-out.
 // ---------------------------------------------------------------- stock in / stock out (inventory)
 async function moveStock(req, res, type) {
   const b = req.body || {};

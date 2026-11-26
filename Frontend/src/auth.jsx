@@ -5,6 +5,7 @@ import { loginRequest } from './services/login.js'
 const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
 
+// [WBS 5.1.1] Implement login and session handling.
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(!!getToken())

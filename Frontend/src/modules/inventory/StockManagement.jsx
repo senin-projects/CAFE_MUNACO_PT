@@ -9,6 +9,8 @@ const TABS = [
   { id: 'history', label: 'Stock History' },
 ]
 
+// [WBS 3.2.1] Record stock-in and stock-out.
+// [WBS 3.2.2] Display stock movement history.
 export default function StockManagement() {
   const [params, setParams] = useSearchParams()
   const activeTab = TABS.some((tab) => tab.id === params.get('tab')) ? params.get('tab') : 'in'

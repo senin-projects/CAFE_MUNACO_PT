@@ -5,6 +5,7 @@ import { ErrorBox, Loading, Modal, PageHeader } from '../../components/ui.jsx'
 import { INVENTORY_CATEGORIES, UNITS } from '../../utils.js'
 
 // "Add New Item" (no :id) and "Edit item" (with :id)
+// [WBS 3.1.1] Implement inventory item create, update, and delete.
 export default function ItemForm({ modal = false, onClose, onSaved }) {
   const { id } = useParams()
   const navigate = useNavigate()

@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { sharedHandlers } from '../controllers/sharedController.js';
 
 const router = Router();
+// Cross-role endpoint aggregation for the dashboard and notification WBS tasks.
 const dashboard = Router();
 dashboard.get('/', ...sharedHandlers.getDashboardHandlerChain('get', '/'));
 const notifications = Router();

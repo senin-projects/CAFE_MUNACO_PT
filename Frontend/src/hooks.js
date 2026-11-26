@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+// Shared data-loading hook used by cashier, kitchen, inventory, and owner screens.
 import { api } from './services/api.js'
 
 // Loads data from the API. `poll` (milliseconds) refreshes it automatically.

@@ -9,6 +9,9 @@ import ActionMenu from '../../components/ActionMenu.jsx'
 import ItemForm from './ItemForm.jsx'
 
 // "Inventory List" for inventory staff, "Inventory Overview" (readOnly) for the owner
+// [WBS 3.1.1] Implement inventory item create, update, and delete.
+// [WBS 3.3.1] Display low-stock items and inventory dashboard.
+// [WBS 4.3.2] Owner inventory overview reuses this list in read-only mode.
 export default function InventoryList({ readOnly, embedded = false }) {
   const [params] = useSearchParams()
   const [q, setQ] = useState('')

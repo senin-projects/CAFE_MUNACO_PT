@@ -3,6 +3,7 @@ import { verifyToken } from '../services/authService.js';
 
 // Every request must carry "Authorization: Bearer <token>". The user is re-checked
 // in the database each time, so a deactivated account is locked out immediately.
+// [WBS 5.1.2] Authenticate each protected request and reload the active user.
 export async function requireAuth(req, res, next) {
   try {
     const header = req.headers.authorization || '';
@@ -19,6 +20,7 @@ export async function requireAuth(req, res, next) {
   }
 }
 
+// [WBS 5.1.2] Restrict each API route to its permitted roles.
 export const requireRole =
   (...roles) =>
   (req, res, next) =>

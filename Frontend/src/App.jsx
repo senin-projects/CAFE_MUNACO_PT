@@ -17,8 +17,9 @@ import StockHistory from './modules/inventory/StockHistory.jsx'
 import InventoryModule from './modules/inventory/InventoryModule.jsx'
 import StockManagement from './modules/inventory/StockManagement.jsx'
 import Users from './modules/owner/Users.jsx'
-import MenuManagement from './modules/owner/MenuManagement.jsx'
+import MenuManagement from './modules/kitchen/MenuManagement.jsx'
 
+// [WBS 5.1.2] Implement role-based access.
 // Only lets the listed roles open a page (the server checks again for every request)
 function Only({ roles, children }) {
   const { user } = useAuth()

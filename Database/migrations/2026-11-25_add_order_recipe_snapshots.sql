@@ -1,3 +1,5 @@
+-- [WBS 1.1.2] Snapshot recipes when paid orders are sent.
+-- [WBS 2.1.2] Track preparation deductions; [WBS 3.2.3] preserve inventory resolution history.
 ALTER TABLE orders
   ADD COLUMN ingredients_deducted_at DATETIME NULL;
 

@@ -23,6 +23,11 @@ function printReceipt() {
   window.print()
 }
 
+// Shared by cashier, kitchen, and owner order routes.
+// [WBS 1.2.1] Display order list and order details.
+// [WBS 1.2.2] Implement serving and cancelling of orders.
+// [WBS 2.1.2] Implement order preparation status updates.
+// [WBS 4.3.1] Monitor and cancel orders.
 export default function OrderDetails() {
   const { id } = useParams()
   const { user } = useAuth()

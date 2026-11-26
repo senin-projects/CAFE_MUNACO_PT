@@ -1,3 +1,4 @@
+// Shared adapter used by module route files without duplicating controller logic.
 // Reuse a route implementation's existing middleware/handler chain when
 // registering that implementation under its modular route file.
 export function getRouteHandlerChain(router, method, path) {

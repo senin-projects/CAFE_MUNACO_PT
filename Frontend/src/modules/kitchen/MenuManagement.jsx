@@ -31,6 +31,8 @@ const categoryIcon = (category) => {
   return CATEGORY_ICONS[LEGACY_CATEGORY_NAMES[key] || key] || 'list'
 }
 
+// [WBS 2.2.1] Implement menu item create, update, delete, and availability.
+// [WBS 2.2.2] Implement ingredient recipes per menu item.
 export default function MenuManagement() {
   const { data, error, loading, reload } = useFetch('/menu')
   const [modal, setModal] = useState(null)

@@ -1,4 +1,5 @@
 -- Adds an audit record for cashier cancellations and owner-approved voids.
+-- [WBS 1.2.2] Cashier draft cancellation; [WBS 4.3.1] Owner order cancellation.
 CREATE TABLE IF NOT EXISTS order_cancellations (
   id                 INT AUTO_INCREMENT PRIMARY KEY,
   order_id           INT NOT NULL UNIQUE,

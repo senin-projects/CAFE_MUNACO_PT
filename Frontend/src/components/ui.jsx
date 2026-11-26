@@ -1,3 +1,4 @@
+// Shared loading, error, empty-state, and form components used across module WBS tasks.
 import { STATUS_LABEL, formatNumber } from '../utils.js'
 
 export function PageHeader({ title, subtitle, children, className = '' }) {

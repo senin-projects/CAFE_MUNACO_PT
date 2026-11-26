@@ -121,7 +121,7 @@ Both endpoints are available to every authenticated role. The route returns diff
 | `Frontend/src/modules/inventory/StockForm.jsx` | `POST /inventory/:id/stock-in` or `/stock-out` with the form body |
 | `Frontend/src/modules/inventory/LowStock.jsx` | Low-stock query through `useFetch` |
 | `Frontend/src/modules/inventory/StockHistory.jsx` | `GET /inventory/movements` through `useFetch`, with optional `q`, `type`, and `days` query parameters |
-| `Frontend/src/modules/owner/MenuManagement.jsx` | Menu list query through `useFetch`; `POST /menu`; `PUT /menu/:id`; `PATCH /menu/:id/availability`; `DELETE /menu/:id` |
+| `Frontend/src/modules/kitchen/MenuManagement.jsx` | Menu list query through `useFetch`; `POST /menu`; `PUT /menu/:id`; `PATCH /menu/:id/availability`; `DELETE /menu/:id` |
 | `Frontend/src/modules/owner/Users.jsx` | User list query through `useFetch`; `POST /users`; `PUT /users/:id`; `POST /users/:id/reset-password`; `PATCH /users/:id/active` |
 | `Frontend/src/modules/owner/Reports.jsx` | `GET /reports/summary?days=...` through `useFetch` |
 | `Frontend/src/components/NotificationBell.jsx` | `GET /notifications` through `useFetch`; `POST /notifications/read` with `{ ids }` |

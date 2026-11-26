@@ -3,6 +3,7 @@ import { Empty, StatCard } from '../../components/ui.jsx'
 import { ORDER_TYPES, timeAgo } from '../../utils.js'
 
 // Kitchen-specific dashboard content. The shared dashboard loads its data.
+// [WBS 2.3.1] Display kitchen dashboard summary.
 export default function KitchenDashboard({ data }) {
   const navigate = useNavigate()
   const stats = data.stats

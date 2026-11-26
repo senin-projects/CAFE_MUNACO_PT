@@ -1,6 +1,8 @@
 // Password hashing and login tokens using Node's built-in crypto.
 import crypto from 'node:crypto';
 
+// [WBS 5.1.1] Verify credentials and issue signed session tokens.
+// [WBS 5.1.2] Verify signed tokens for protected API requests.
 const secret = () => process.env.TOKEN_SECRET || 'dev-secret-change-me';
 
 export function hashPassword(password) {

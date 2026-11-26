@@ -13,12 +13,13 @@ const many = async (sql, params = []) => (await pool.query(sql, params))[0];
 
 const LOW = 'quantity <= reorder_level';
 
-// One endpoint, different numbers for each role
+// One shared endpoint supplies WBS 1.3.1, 2.3.1, 3.3.1, and 4.1.1 by role.
 router.get(
   '/',
   wrap(async (req, res) => {
     const { role, id } = req.user;
 
+    // [WBS 1.3.1] Display cashier dashboard summary.
     if (role === 'cashier') {
       return res.json({
         stats: {
@@ -36,6 +37,7 @@ router.get(
       });
     }
 
+    // [WBS 2.3.1] Display kitchen dashboard summary.
     if (role === 'kitchen') {
       return res.json({
         stats: {
@@ -50,6 +52,7 @@ router.get(
       });
     }
 
+    // [WBS 3.3.1] Display low-stock items and inventory dashboard.
     if (role === 'inventory') {
       return res.json({
         stats: {
@@ -66,7 +69,7 @@ router.get(
       });
     }
 
-    // owner
+    // [WBS 4.1.1] Display owner overview dashboard.
     return res.json({
       stats: {
         today_sales: await one("SELECT COALESCE(SUM(total), 0) FROM orders WHERE status = 'served' AND DATE(served_at) = CURDATE()"),

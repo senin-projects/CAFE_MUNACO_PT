@@ -1,3 +1,6 @@
+// Shared by menu recipe entry/validation and recipe-based inventory deductions.
+// [WBS 2.2.2] Validate and present compatible recipe units.
+// [WBS 3.2.3] Convert recipe quantities to inventory units.
 export const UNITS = ['kg', 'g', 'L', 'ml', 'pcs', 'pack', 'bottle', 'can', 'sachet']
 
 const UNIT_DEFINITIONS = {

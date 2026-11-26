@@ -7,8 +7,10 @@ import { publicUser } from '../utils/publicUser.js';
 
 const router = Router();
 
+// [WBS 5.1.1] Return the authenticated user's current session details.
 router.get('/me', requireAuth, (req, res) => res.json({ user: publicUser(req.user) }));
 
+// [WBS 5.1.3] Update the authenticated user's profile name.
 router.put(
   '/profile',
   requireAuth,
@@ -20,6 +22,7 @@ router.put(
   })
 );
 
+// [WBS 5.1.3] Update the authenticated user's password.
 router.put(
   '/password',
   requireAuth,

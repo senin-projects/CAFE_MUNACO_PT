@@ -1,3 +1,5 @@
+// [WBS 1.1.1] Persist order items as part of cashier order creation and editing.
+// [WBS 1.2.1] Retrieve order line items for shared order details.
 import { pool } from '../config/db.js';
 
 // Shared order projection used by cashier, kitchen, and owner order reads.

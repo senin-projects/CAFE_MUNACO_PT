@@ -219,6 +219,8 @@ function DailyLineChart({ rows, days }) {
   )
 }
 
+// [WBS 4.2.1] Calculate and display sales summaries and trend charts.
+// [WBS 4.2.2] Identify best-selling items and sales by category.
 export default function Reports() {
   const [days, setDays] = useState('7')
   const { data: r, error, loading } = useFetch(`/reports/summary?days=${days}`)

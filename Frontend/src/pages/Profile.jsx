@@ -4,6 +4,7 @@ import { useAuth } from '../auth.jsx'
 import { ErrorBox, PageHeader } from '../components/ui.jsx'
 import { ROLE_LABEL } from '../utils.js'
 
+// [WBS 5.1.3] Implement My Profile.
 export default function Profile() {
   const { user, setUser } = useAuth()
   const [name, setName] = useState(user.full_name)

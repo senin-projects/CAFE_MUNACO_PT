@@ -18,11 +18,14 @@ export function isKitchenVisibleStatus(status) {
   return KITCHEN_VISIBLE_STATUSES.includes(status);
 }
 
+// [WBS 1.2.2] Enforce cashier serving and cancellation transitions.
+// [WBS 2.1.2] Enforce kitchen preparation transitions.
 export function getAllowedOrderTransition(role, currentStatus) {
   return TRANSITIONS[role]?.[currentStatus];
 }
 
 // Kitchen staff must never see prices or totals.
+// [WBS 2.1.1] Hide prices and payment fields from kitchen users.
 export function stripOrderPrices(order, role) {
   if (role !== 'kitchen') return order;
   const { total, payment_status, payment_method, paid_at, ...rest } = order;
@@ -31,6 +34,7 @@ export function stripOrderPrices(order, role) {
 }
 
 // Reads the form, checks it, and rebuilds item lines using the real menu prices.
+// [WBS 1.1.1] Validate order fields, menu prices, availability, and scheduled times.
 export async function validateOrder(body, preservedUnavailable = new Map(), db = pool) {
   const customer_name = String(body.customer_name || '').trim();
   if (!customer_name) throw httpError(400, 'Enter the customer name.');

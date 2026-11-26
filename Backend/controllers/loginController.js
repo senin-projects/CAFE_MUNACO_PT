@@ -3,6 +3,7 @@ import { verifyPassword, signToken } from '../services/authService.js';
 import { wrap, httpError, isBlank } from '../utils/http.js';
 import { publicUser } from '../utils/publicUser.js';
 
+// [WBS 5.1.1] Implement login and session handling.
 export const login = wrap(async (req, res) => {
   const { username, password } = req.body || {};
   if (isBlank(username) || isBlank(password)) {

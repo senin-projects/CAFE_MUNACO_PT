@@ -1,14 +1,16 @@
 import { Router } from 'express';
-import { getRouteHandlerChain } from './routeHandlers.js';
-import { pool } from '../config/db.js';
-import { requireRole } from '../middleware/auth.js';
-import { wrap } from '../utils/http.js';
+import { getRouteHandlerChain } from '../../../controllers/routeHandlers.js';
+import { pool } from '../../../config/db.js';
+import { requireRole } from '../../../middleware/auth.js';
+import { wrap } from '../../../utils/http.js';
 
 const router = Router();
 router.use(requireRole('owner'));
 
 const rows = async (sql, params = []) => (await pool.query(sql, params))[0];
 
+// [WBS 4.2.1] Calculate and display sales summaries and trend charts.
+// [WBS 4.2.2] Identify best-selling items and sales by category.
 // Sales count only orders that were served.
 router.get(
   '/summary',

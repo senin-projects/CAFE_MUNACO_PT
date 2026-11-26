@@ -1,16 +1,9 @@
 import { Router } from 'express';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { requireAuth, requireRole } from '../../../middleware/auth.js';
 import { ownerHandlers } from '../controllers/ownerController.js';
 
 const router = Router();
-const menu = Router();
-menu.get('/', ...ownerHandlers.getMenuHandlerChain('get', '/'));
-menu.get('/:id', ...ownerHandlers.getMenuHandlerChain('get', '/:id'));
-menu.post('/', ...ownerHandlers.getMenuHandlerChain('post', '/'));
-menu.put('/:id', ...ownerHandlers.getMenuHandlerChain('put', '/:id'));
-menu.patch('/:id/availability', ...ownerHandlers.getMenuHandlerChain('patch', '/:id/availability'));
-menu.delete('/:id', ...ownerHandlers.getMenuHandlerChain('delete', '/:id'));
-
+// [WBS 4.4.1] Owner-only staff account management.
 const users = Router();
 users.use(requireRole('owner'));
 users.get('/', ...ownerHandlers.getUsersHandlerChain('get', '/'));
@@ -20,10 +13,10 @@ users.patch('/:id/active', ...ownerHandlers.getUsersHandlerChain('patch', '/:id/
 users.post('/:id/reset-password', ...ownerHandlers.getUsersHandlerChain('post', '/:id/reset-password'));
 
 const reports = Router();
+// [WBS 4.2.1] Owner-only sales analytics.
 reports.use(requireRole('owner'));
 reports.get('/summary', ...ownerHandlers.getReportsHandlerChain('get', '/summary'));
 
-router.use('/menu', requireAuth, menu);
 router.use('/users', requireAuth, users);
 router.use('/reports', requireAuth, reports);
 

@@ -5,6 +5,8 @@ import { wrap } from '../utils/http.js';
 
 const router = Router();
 
+// [WBS 4.1.2] Return role-specific notifications and record read state.
+// [WBS 3.3.1] Include low-stock notifications for inventory staff and owner.
 router.post(
   '/read',
   wrap(async (req, res) => {

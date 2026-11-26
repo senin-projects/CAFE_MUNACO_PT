@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { getRouteHandlerChain } from './routeHandlers.js';
-import { pool } from '../config/db.js';
-import { hashPassword } from '../services/authService.js';
-import { requireRole } from '../middleware/auth.js';
-import { wrap, httpError, isBlank } from '../utils/http.js';
-import { logActivity } from '../services/activityService.js';
+import { getRouteHandlerChain } from '../../../controllers/routeHandlers.js';
+import { pool } from '../../../config/db.js';
+import { hashPassword } from '../../../services/authService.js';
+import { requireRole } from '../../../middleware/auth.js';
+import { wrap, httpError, isBlank } from '../../../utils/http.js';
+import { logActivity } from '../../../services/activityService.js';
 
 const router = Router();
 router.use(requireRole('owner')); // the whole file is owner-only
@@ -26,6 +26,7 @@ function checkPassword(v) {
   return String(v);
 }
 
+// [WBS 4.4.1] Implement staff account create, update, and activate or deactivate.
 router.get(
   '/',
   wrap(async (req, res) => {
@@ -34,6 +35,7 @@ router.get(
   })
 );
 
+// [WBS 4.4.1] Implement staff account create, update, and activate or deactivate.
 router.post(
   '/',
   wrap(async (req, res) => {
@@ -58,6 +60,7 @@ router.post(
   })
 );
 
+// [WBS 4.4.1] Implement staff account create, update, and activate or deactivate.
 router.put(
   '/:id',
   wrap(async (req, res) => {
@@ -74,6 +77,7 @@ router.put(
   })
 );
 
+// [WBS 4.4.1] Implement staff account create, update, and activate or deactivate.
 router.patch(
   '/:id/active',
   wrap(async (req, res) => {
@@ -89,6 +93,7 @@ router.patch(
   })
 );
 
+// [WBS 4.4.2] Implement staff password reset.
 router.post(
   '/:id/reset-password',
   wrap(async (req, res) => {

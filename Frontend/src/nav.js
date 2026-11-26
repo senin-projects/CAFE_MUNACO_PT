@@ -1,3 +1,4 @@
+// [WBS 5.1.2] Implement role-based access.
 // The sidebar menu for each role. `to` is the page address, `icon` a name from Icon.jsx.
 export const NAV = {
   cashier: [

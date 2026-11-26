@@ -19,6 +19,10 @@ import {
 
 const router = Router();
 
+// Shared order implementation used by cashier, kitchen, and owner workflows.
+// [WBS 1.2.1] Display order list and order details.
+// [WBS 2.1.1] Display kitchen-visible orders without prices or payment data.
+// [WBS 4.3.1] Provide owner order monitoring.
 // ---------------------------------------------------------------- list
 // ?status=sent,preparing  ?q=search  ?type=dine_in  ?items=1 (include item lines)  ?sort=oldest
 router.get(
@@ -70,6 +74,8 @@ router.get(
   })
 );
 
+// [WBS 1.2.1] Display order list and order details.
+// [WBS 4.3.1] Provide owner order monitoring.
 // ---------------------------------------------------------------- one order
 router.get(
   '/:id',
@@ -92,6 +98,8 @@ router.get(
   })
 );
 
+// [WBS 1.2.2] Implement cashier cancellation of unpaid pending drafts.
+// [WBS 4.3.1] Monitor and cancel orders with payment and inventory resolutions.
 // ---------------------------------------------------------------- cancel / void
 router.post(
   '/:id/cancel',

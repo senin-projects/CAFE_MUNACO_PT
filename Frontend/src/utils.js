@@ -1,3 +1,4 @@
+// Shared presentation labels and formatters used throughout the module screens.
 import { UNITS } from '../../Shared/units.js'
 
 const numberFormatter = new Intl.NumberFormat('en-PH', { maximumFractionDigits: 6 })
