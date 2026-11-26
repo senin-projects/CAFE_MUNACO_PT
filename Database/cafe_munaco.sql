@@ -6,7 +6,7 @@ CREATE DATABASE IF NOT EXISTS cafe_munaco CHARACTER SET utf8mb4 COLLATE utf8mb4_
 USE cafe_munaco;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS order_cancellations, notification_reads, activity_log, stock_movements, menu_item_ingredients, inventory_items, order_items, orders, menu_items, users;
+DROP TABLE IF EXISTS order_cancellations, notification_reads, activity_log, stock_movements, order_item_ingredients, menu_item_ingredients, inventory_items, order_items, orders, menu_items, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ---------------------------------------------------------------- users
@@ -210,24 +210,94 @@ INSERT INTO inventory_items (id, name, category, unit, quantity, reorder_level, 
 (16, 'Barako coffee beans','Beverages',  'kg',    4.00,  2.00, 0),
 (17, 'Bottled water',      'Beverages',  'pcs', 48.00, 24.00, 0);
 
+-- Illustrative demo recipes only. Replace these per-serving quantities with the cafe's actual recipes before production use.
+INSERT INTO menu_item_ingredients (menu_item_id, ingredient_id, quantity_required, unit_of_measurement) VALUES
+(1, 1, 0.30, 'kg'), (1, 14, 0.02, 'L'),
+(2, 2, 0.15, 'kg'), (2, 14, 0.01, 'L'),
+(3, 2, 0.12, 'kg'), (3, 8, 0.05, 'kg'), (3, 9, 0.05, 'kg'), (3, 10, 0.02, 'kg'),
+(4, 3, 0.20, 'kg'), (4, 10, 0.02, 'kg'), (4, 14, 0.01, 'L'),
+(5, 3, 0.15, 'kg'), (5, 14, 0.03, 'L'),
+(6, 4, 0.40, 'kg'), (6, 9, 0.08, 'kg'), (6, 14, 0.02, 'L'),
+(7, 5, 0.25, 'kg'), (7, 10, 0.02, 'kg'), (7, 14, 0.02, 'L'),
+(8, 6, 0.20, 'kg'), (8, 10, 0.01, 'kg'), (8, 14, 0.02, 'L'),
+(9, 7, 0.18, 'kg'), (9, 8, 0.03, 'kg'), (9, 9, 0.05, 'kg'),
+(10, 5, 0.05, 'kg'), (10, 9, 0.03, 'kg'), (10, 14, 0.01, 'L'), (10, 15, 0.50, 'pack'),
+(11, 13, 0.15, 'kg'), (11, 14, 0.01, 'L'),
+(12, 13, 0.15, 'kg'),
+(13, 8, 0.05, 'kg'), (13, 9, 0.10, 'kg'), (13, 10, 0.02, 'kg'),
+(14, 11, 0.10, 'tray'), (14, 12, 0.05, 'L'),
+(15, 12, 0.10, 'L'),
+(16, 16, 0.02, 'kg'),
+(17, 12, 0.20, 'L'), (17, 16, 0.02, 'kg'),
+(18, 10, 0.15, 'kg'),
+(19, 17, 1.00, 'pcs'),
+(20, 5, 0.10, 'kg'), (20, 13, 0.15, 'kg'), (20, 17, 1.00, 'pcs'),
+(21, 5, 0.10, 'kg'), (21, 13, 0.15, 'kg'), (21, 17, 1.00, 'pcs');
+
+-- Opening balances reflect the later seeded stock in/out movements below.
 INSERT INTO stock_movements (item_id, movement_type, quantity, balance_after, reason, created_by, created_at)
-SELECT id, 'in', quantity, quantity, 'Opening stock', 6, NOW() - INTERVAL 10 DAY FROM inventory_items WHERE quantity > 0;
+SELECT id, 'in',
+       CASE name
+         WHEN 'Tilapia' THEN 8.00
+         WHEN 'Shrimp (hipon)' THEN 8.15
+         WHEN 'Crab (alimango)' THEN 2.00
+         WHEN 'Squid (pusit)' THEN 6.20
+         WHEN 'Chicken' THEN 25.80
+         WHEN 'Tomatoes' THEN 7.03
+         WHEN 'Calamansi' THEN 5.08
+         WHEN 'Fresh milk' THEN 8.50
+         WHEN 'Rice' THEN 60.30
+         WHEN 'Cooking oil' THEN 12.11
+         WHEN 'Canton noodles' THEN 20.50
+         ELSE quantity
+       END,
+       CASE name
+         WHEN 'Tilapia' THEN 8.00
+         WHEN 'Shrimp (hipon)' THEN 8.15
+         WHEN 'Crab (alimango)' THEN 2.00
+         WHEN 'Squid (pusit)' THEN 6.20
+         WHEN 'Chicken' THEN 25.80
+         WHEN 'Tomatoes' THEN 7.03
+         WHEN 'Calamansi' THEN 5.08
+         WHEN 'Fresh milk' THEN 8.50
+         WHEN 'Rice' THEN 60.30
+         WHEN 'Cooking oil' THEN 12.11
+         WHEN 'Canton noodles' THEN 20.50
+         ELSE quantity
+       END,
+       'Opening stock', 6, NOW() - INTERVAL 10 DAY
+FROM inventory_items
+WHERE quantity > 0 OR name = 'Crab (alimango)';
 
 INSERT INTO stock_movements (item_id, movement_type, quantity, balance_after, reason, supplier, created_by, created_at) VALUES
-(2, 'out', 3.50, 4.50, 'Used in kitchen', NULL, 6, NOW() - INTERVAL 1 DAY),
+(2, 'out', 3.50, 4.65, 'Used in kitchen', NULL, 6, NOW() - INTERVAL 1 DAY),
 (4, 'out', 2.00, 0.00, 'Used in kitchen', NULL, 6, NOW() - INTERVAL 1 DAY),
 (1, 'in', 10.00, 18.00, 'Delivery', 'Calaca Fish Port', 6, NOW() - INTERVAL 2 DAY);
 
--- Sample orders so the dashboards, reports and kitchen screens are not empty
-INSERT INTO orders (id, order_no, customer_name, order_type, table_no, guests, scheduled_at, special_requests, status, created_by, prepared_by, created_at, sent_at, preparing_at, ready_at, served_at) VALUES
-(1, 'MUN-00001', 'Dela Rosa Family', 'birthday',    'Garden 1', 12, NOW() - INTERVAL 6 DAY, 'Birthday cake arrives at 6 PM, please hold the lights.', 'served', 2, 4, NOW() - INTERVAL 6 DAY, NOW() - INTERVAL 6 DAY, NOW() - INTERVAL 6 DAY, NOW() - INTERVAL 6 DAY, NOW() - INTERVAL 6 DAY),
-(2, 'MUN-00002', 'Mr. Tolentino',    'dine_in',     'T4',        2, NULL, NULL, 'served', 2, 4, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 3 DAY),
-(3, 'MUN-00003', 'Barangay Office',  'buffet',      'Hall',     40, NOW() - INTERVAL 2 DAY, NULL, 'served', 3, 5, NOW() - INTERVAL 2 DAY, NOW() - INTERVAL 2 DAY, NOW() - INTERVAL 2 DAY, NOW() - INTERVAL 2 DAY, NOW() - INTERVAL 2 DAY),
-(4, 'MUN-00004', 'Ms. Aguilar',      'takeout',     NULL,        NULL, NULL, 'No chili please.', 'served', 3, 4, NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 1 DAY),
-(5, 'MUN-00005', 'Garcia Table',     'dine_in',     'T2',        4, NULL, 'One guest allergic to peanuts (kare-kare without peanut sauce).', 'sent', 2, NULL, NOW() - INTERVAL 20 MINUTE, NOW() - INTERVAL 18 MINUTE, NULL, NULL, NULL),
-(6, 'MUN-00006', 'Bautista Couple',  'dine_in',     'T6',        2, NULL, NULL, 'preparing', 2, 4, NOW() - INTERVAL 30 MINUTE, NOW() - INTERVAL 28 MINUTE, NOW() - INTERVAL 15 MINUTE, NULL, NULL),
-(7, 'MUN-00007', 'Cruz Family',      'dine_in',     'T3',        5, NULL, NULL, 'ready', 3, 5, NOW() - INTERVAL 45 MINUTE, NOW() - INTERVAL 43 MINUTE, NOW() - INTERVAL 35 MINUTE, NOW() - INTERVAL 5 MINUTE, NULL),
-(8, 'MUN-00008', 'Lopez Anniversary','reservation', 'T8',        6, NOW() + INTERVAL 2 DAY, 'Candlelit table by the window.', 'pending', 2, NULL, NOW() - INTERVAL 1 HOUR, NULL, NULL, NULL, NULL);
+-- Match stock deductions for the seeded preparing and ready kitchen orders.
+INSERT INTO stock_movements (item_id, movement_type, quantity, balance_after, reason, note, created_by, created_at) VALUES
+(5, 'out', 0.80, 25.00, 'Order preparation', 'MUN-00007', 5, NOW() - INTERVAL 35 MINUTE),
+(9, 'out', 0.03, 7.00, 'Order preparation', 'MUN-00007', 5, NOW() - INTERVAL 35 MINUTE),
+(10, 'out', 0.06, 5.02, 'Order preparation', 'MUN-00007', 5, NOW() - INTERVAL 35 MINUTE),
+(12, 'out', 0.50, 8.00, 'Order preparation', 'MUN-00007', 5, NOW() - INTERVAL 35 MINUTE),
+(14, 'out', 0.07, 12.04, 'Order preparation', 'MUN-00007', 5, NOW() - INTERVAL 35 MINUTE),
+(15, 'out', 0.50, 20.00, 'Order preparation', 'MUN-00007', 5, NOW() - INTERVAL 35 MINUTE),
+(2, 'out', 0.15, 4.50, 'Order preparation', 'MUN-00006', 4, NOW() - INTERVAL 15 MINUTE),
+(3, 'out', 0.20, 6.00, 'Order preparation', 'MUN-00006', 4, NOW() - INTERVAL 15 MINUTE),
+(10, 'out', 0.02, 5.00, 'Order preparation', 'MUN-00006', 4, NOW() - INTERVAL 15 MINUTE),
+(13, 'out', 0.30, 60.00, 'Order preparation', 'MUN-00006', 4, NOW() - INTERVAL 15 MINUTE),
+(14, 'out', 0.04, 12.00, 'Order preparation', 'MUN-00006', 4, NOW() - INTERVAL 15 MINUTE);
+
+-- Historical served samples predate recipe-based stock tracking; active kitchen samples below have snapshots and matching stock movements.
+INSERT INTO orders (id, order_no, customer_name, order_type, table_no, guests, scheduled_at, special_requests, status, payment_status, payment_method, paid_at, created_by, prepared_by, created_at, sent_at, preparing_at, ready_at, served_at) VALUES
+(1, 'MUN-00001', 'Dela Rosa Family', 'birthday',    'Garden 1', 12, NOW() - INTERVAL 6 DAY, 'Birthday cake arrives at 6 PM, please hold the lights.', 'served', 'paid', 'cash', NOW() - INTERVAL 6 DAY, 2, 4, NOW() - INTERVAL 6 DAY, NOW() - INTERVAL 6 DAY, NOW() - INTERVAL 6 DAY, NOW() - INTERVAL 6 DAY, NOW() - INTERVAL 6 DAY),
+(2, 'MUN-00002', 'Mr. Tolentino',    'dine_in',     'T4',        2, NULL, NULL, 'served', 'paid', 'cash', NOW() - INTERVAL 3 DAY, 2, 4, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 3 DAY),
+(3, 'MUN-00003', 'Barangay Office',  'buffet',      'Hall',     40, NOW() - INTERVAL 2 DAY, NULL, 'served', 'paid', 'cash', NOW() - INTERVAL 2 DAY, 3, 5, NOW() - INTERVAL 2 DAY, NOW() - INTERVAL 2 DAY, NOW() - INTERVAL 2 DAY, NOW() - INTERVAL 2 DAY, NOW() - INTERVAL 2 DAY),
+(4, 'MUN-00004', 'Ms. Aguilar',      'takeout',     NULL,        NULL, NULL, 'No chili please.', 'served', 'paid', 'cash', NOW() - INTERVAL 1 DAY, 3, 4, NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 1 DAY),
+(5, 'MUN-00005', 'Garcia Table',     'dine_in',     'T2',        4, NULL, 'One guest allergic to peanuts (kare-kare without peanut sauce).', 'sent', 'paid', 'cash', NOW() - INTERVAL 19 MINUTE, 2, NULL, NOW() - INTERVAL 20 MINUTE, NOW() - INTERVAL 18 MINUTE, NULL, NULL, NULL),
+(6, 'MUN-00006', 'Bautista Couple',  'dine_in',     'T6',        2, NULL, NULL, 'preparing', 'paid', 'cash', NOW() - INTERVAL 28 MINUTE, 2, 4, NOW() - INTERVAL 30 MINUTE, NOW() - INTERVAL 28 MINUTE, NOW() - INTERVAL 15 MINUTE, NULL, NULL),
+(7, 'MUN-00007', 'Cruz Family',      'dine_in',     'T3',        5, NULL, NULL, 'ready', 'paid', 'cash', NOW() - INTERVAL 43 MINUTE, 3, 5, NOW() - INTERVAL 45 MINUTE, NOW() - INTERVAL 43 MINUTE, NOW() - INTERVAL 35 MINUTE, NOW() - INTERVAL 5 MINUTE, NULL),
+(8, 'MUN-00008', 'Lopez Anniversary','reservation', 'T8',        6, NOW() + INTERVAL 2 DAY, 'Candlelit table by the window.', 'pending', 'unpaid', NULL, NULL, 2, NULL, NOW() - INTERVAL 1 HOUR, NULL, NULL, NULL, NULL);
 
 INSERT INTO order_items (order_id, menu_item_id, item_name, quantity, unit_price, notes) VALUES
 (1, 21, '', 12, 0, NULL), (1, 2, '', 3, 0, NULL), (1, 14, '', 12, 0, NULL),
@@ -243,9 +313,32 @@ INSERT INTO order_items (order_id, menu_item_id, item_name, quantity, unit_price
 UPDATE order_items oi JOIN menu_items m ON m.id = oi.menu_item_id SET oi.item_name = m.name, oi.unit_price = m.price;
 UPDATE orders o SET total = (SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = o.id);
 
+-- Snapshot recipes for kitchen-visible demo orders; only preparing/ready orders have deducted stock.
+INSERT INTO order_item_ingredients
+  (order_item_id, ingredient_id, ingredient_name, quantity_required, unit_of_measurement, inventory_unit)
+SELECT oi.id, mii.ingredient_id, i.name, mii.quantity_required, mii.unit_of_measurement, i.unit
+FROM order_items oi
+JOIN orders o ON o.id = oi.order_id
+JOIN menu_item_ingredients mii ON mii.menu_item_id = oi.menu_item_id
+JOIN inventory_items i ON i.id = mii.ingredient_id
+WHERE o.status IN ('sent', 'preparing', 'ready');
+
+UPDATE orders SET ingredients_deducted_at = preparing_at WHERE status IN ('preparing', 'ready');
+
 INSERT INTO activity_log (user_id, action, details, created_at) VALUES
 (2, 'Order sent', 'MUN-00005 sent to kitchen', NOW() - INTERVAL 18 MINUTE),
 (4, 'Order status', 'MUN-00006 marked as preparing', NOW() - INTERVAL 15 MINUTE),
 (5, 'Order status', 'MUN-00007 marked as ready', NOW() - INTERVAL 5 MINUTE),
 (6, 'Stock out', 'Crab (alimango): 2 kg removed (Used in kitchen)', NOW() - INTERVAL 1 DAY),
-(6, 'Stock in', 'Tilapia: 10 kg received from Calaca Fish Port', NOW() - INTERVAL 2 DAY);
+(6, 'Stock in', 'Tilapia: 10 kg received from Calaca Fish Port', NOW() - INTERVAL 2 DAY),
+(5, 'Stock out', 'Chicken: 0.8 kg used to prepare MUN-00007', NOW() - INTERVAL 35 MINUTE),
+(5, 'Stock out', 'Tomatoes: 0.03 kg used to prepare MUN-00007', NOW() - INTERVAL 35 MINUTE),
+(5, 'Stock out', 'Calamansi: 0.06 kg used to prepare MUN-00007', NOW() - INTERVAL 35 MINUTE),
+(5, 'Stock out', 'Fresh milk: 0.5 L used to prepare MUN-00007', NOW() - INTERVAL 35 MINUTE),
+(5, 'Stock out', 'Cooking oil: 0.07 L used to prepare MUN-00007', NOW() - INTERVAL 35 MINUTE),
+(5, 'Stock out', 'Canton noodles: 0.5 pack used to prepare MUN-00007', NOW() - INTERVAL 35 MINUTE),
+(4, 'Stock out', 'Shrimp (hipon): 0.15 kg used to prepare MUN-00006', NOW() - INTERVAL 15 MINUTE),
+(4, 'Stock out', 'Squid (pusit): 0.2 kg used to prepare MUN-00006', NOW() - INTERVAL 15 MINUTE),
+(4, 'Stock out', 'Calamansi: 0.02 kg used to prepare MUN-00006', NOW() - INTERVAL 15 MINUTE),
+(4, 'Stock out', 'Rice: 0.3 kg used to prepare MUN-00006', NOW() - INTERVAL 15 MINUTE),
+(4, 'Stock out', 'Cooking oil: 0.04 L used to prepare MUN-00006', NOW() - INTERVAL 15 MINUTE);

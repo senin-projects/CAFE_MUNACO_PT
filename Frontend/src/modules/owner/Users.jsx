@@ -58,8 +58,8 @@ export default function Users() {
 
       {loading && !data ? <Loading /> : (
         <div className="table-wrap">
-          <table>
-            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Created</th><th></th></tr></thead>
+          <table className="users-table">
+            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Created</th><th className="users-actions-heading" aria-label="Actions"></th></tr></thead>
             <tbody>
               {data?.map((u) => (
                 <tr key={u.id} className={u.is_active ? '' : 'inactive'}>

@@ -5,6 +5,7 @@ import { api, qs } from '../../services/api.js'
 import { Empty, ErrorBox, Loading, PageHeader, StatCard, StockBadge } from '../../components/ui.jsx'
 import { INVENTORY_CATEGORIES, dateTime, qty } from '../../utils.js'
 import Icon from '../../components/Icon.jsx'
+import ActionMenu from '../../components/ActionMenu.jsx'
 import ItemForm from './ItemForm.jsx'
 
 // "Inventory List" for inventory staff, "Inventory Overview" (readOnly) for the owner
@@ -47,7 +48,7 @@ export default function InventoryList({ readOnly }) {
       <div className="stats">
         <StatCard label="Items shown" value={data?.length ?? '–'} />
         <StatCard label="Low or out of stock" value={lowCount} tone={lowCount ? 'warn' : ''} />
-        <StatCard label="Fresh products shown" value={data?.filter((i) => i.is_fresh).length ?? '–'} />
+        <StatCard label="Fresh products shown" value={data?.filter((i) => Number(i.is_fresh) === 1).length ?? '–'} />
       </div>
 
       <div className="filters">
@@ -56,8 +57,22 @@ export default function InventoryList({ readOnly }) {
           <option value="">All categories</option>
           {INVENTORY_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
         </select>
-        <label className="check"><input type="checkbox" checked={fresh} onChange={(e) => setFresh(e.target.checked)} /> Fresh products only</label>
-        <label className="check"><input type="checkbox" checked={low} onChange={(e) => setLow(e.target.checked)} /> Low stock only</label>
+        <details className="inventory-filter-dropdown">
+          <summary>
+            Filters
+            {(fresh || low) && <span className="inventory-filter-count">{Number(fresh) + Number(low)}</span>}
+          </summary>
+          <div className="inventory-filter-menu">
+            <label className="inventory-filter-option">
+              <input type="checkbox" checked={fresh} onChange={(e) => setFresh(e.target.checked)} />
+              Fresh products
+            </label>
+            <label className="inventory-filter-option">
+              <input type="checkbox" checked={low} onChange={(e) => setLow(e.target.checked)} />
+              Low stock
+            </label>
+          </div>
+        </details>
       </div>
 
       <ErrorBox message={error || actionError} />
@@ -65,7 +80,7 @@ export default function InventoryList({ readOnly }) {
         <div className="table-wrap inventory-table-wrap">
           <table className={`inventory-table${readOnly ? ' read-only' : ''}`}>
             <thead>
-              <tr><th>Item</th><th>Category</th><th className="num">On hand</th><th className="num">Reorder at</th><th>Status</th><th>Updated</th>{!readOnly && <th className="inventory-actions-heading">Actions</th>}</tr>
+              <tr><th>Item</th><th className="inventory-fresh-heading">Fresh</th><th>Category</th><th className="num">On hand</th><th className="num">Reorder level</th><th>Status</th><th>Updated</th>{!readOnly && <th className="inventory-actions-heading">Actions</th>}</tr>
             </thead>
             <tbody>
               {data?.map((i) => (
@@ -73,14 +88,16 @@ export default function InventoryList({ readOnly }) {
                   <td data-label="Item">
                     <div className="inventory-item-cell">
                       <strong className="inventory-item-name">{i.name}</strong>
-                      {i.is_fresh && <span className="tag">Fresh</span>}
                     </div>
+                  </td>
+                  <td className="inventory-fresh" data-label="Fresh">
+                    {Number(i.is_fresh) === 1 ? <span className="tag">Fresh</span> : '–'}
                   </td>
                   <td data-label="Category"><span className="inventory-category">{i.category}</span></td>
                   <td className="num" data-label="On hand">
                     <span className="inventory-quantity"><span className="inventory-quantity-value">{qty(i.quantity)}</span><span className="inventory-quantity-unit">{i.unit}</span></span>
                   </td>
-                  <td className="num" data-label="Reorder at">
+                  <td className="num" data-label="Reorder level">
                     <span className="inventory-quantity"><span className="inventory-quantity-value">{qty(i.reorder_level)}</span><span className="inventory-quantity-unit">{i.unit}</span></span>
                   </td>
                   <td data-label="Status"><StockBadge status={i.stock_status} /></td>
@@ -88,19 +105,20 @@ export default function InventoryList({ readOnly }) {
                   {!readOnly && (
                     <td className="inventory-actions-cell" data-label="Actions">
                       <div className="inventory-row-actions">
-                        <Link className="inventory-stock-action" to={`/stock-management?tab=in&item=${i.id}`}>
-                          <Icon name="download" size={17} />
-                          <span>Stock In</span>
-                        </Link>
-                        <Link className="inventory-stock-action" to={`/stock-management?tab=out&item=${i.id}`}>
-                          <Icon name="upload" size={17} />
-                          <span>Stock Out</span>
-                        </Link>
-                        <details className="inventory-more">
-                          <summary className="icon-button" aria-label={`More actions for ${i.name}`} title="More actions">
-                            <Icon name="moreVertical" size={19} />
-                          </summary>
-                          <div className="inventory-action-menu">
+                        <ActionMenu
+                          label={`More actions for ${i.name}`}
+                          title="More actions"
+                          className="inventory-more"
+                          triggerClassName="icon-button"
+                          menuClassName="inventory-action-menu"
+                          trigger={<Icon name="moreVertical" size={19} />}
+                        >
+                            <Link className="inventory-action-option" to={`/stock-management?tab=in&item=${i.id}`}>
+                              <Icon name="download" size={16} /> Stock In
+                            </Link>
+                            <Link className="inventory-action-option" to={`/stock-management?tab=out&item=${i.id}`}>
+                              <Icon name="upload" size={16} /> Stock Out
+                            </Link>
                             <Link className="inventory-action-option" to={`/inventory/${i.id}/edit`}>
                               <Icon name="edit" size={16} /> Edit
                             </Link>
@@ -113,8 +131,7 @@ export default function InventoryList({ readOnly }) {
                               <Icon name="trash" size={16} />
                               {deletingId === i.id ? 'Deleting...' : 'Delete'}
                             </button>
-                          </div>
-                        </details>
+                        </ActionMenu>
                       </div>
                     </td>
                   )}

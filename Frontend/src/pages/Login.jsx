@@ -39,7 +39,6 @@ export default function Login() {
         <form className="login-form" onSubmit={submit}>
           <div className="login-form-heading">
             <span className="login-brand-name">CAFE MUNACO · MADALUNOT</span>
-            <span className="login-tagline">Refined brews, elevated spirits.</span>
             <h2>Welcome     </h2>
           
           </div>

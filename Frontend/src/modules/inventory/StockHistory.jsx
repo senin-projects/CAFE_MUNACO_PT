@@ -32,7 +32,7 @@ export default function StockHistory({ embedded = false }) {
       <ErrorBox message={error} />
       {loading && !data ? <Loading /> : data?.length === 0 ? <Empty>No stock changes in this period.</Empty> : (
         <div className="table-wrap">
-          <table>
+          <table className="stock-history-table">
             <thead><tr><th>When</th><th>Item</th><th>Change</th><th className="num">Quantity</th><th className="num">Balance after</th><th>Reason or supplier</th><th>Recorded by</th></tr></thead>
             <tbody>
               {data?.map((m) => (
