@@ -115,7 +115,10 @@ export default function NewOrder() {
           return
         }
       }
-      navigate(payAndSend ? `/orders/${res.id}` : '/orders')
+      navigate(
+        payAndSend ? `/orders/${res.id}` : '/orders',
+        payAndSend ? { state: { autoPrintReceipt: true } } : undefined,
+      )
     } catch (e) {
       setError(e.message)
       setBusy(false)

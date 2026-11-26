@@ -375,6 +375,14 @@ tr.inactive td { color: var(--muted); }
 .hbar div { height: 100%; background: var(--coral); border-radius: 99px; }
 
 /* ---------- owner sales overview charts ---------- */
+.reports-summary-layout { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 16px; margin-bottom: 18px; }
+.report-total-revenue { display: flex; flex-direction: column; justify-content: space-between; gap: 12px; min-height: 204px; margin-bottom: 0; padding: 22px 26px; }
+.report-total-revenue-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.report-total-revenue-heading h2 { margin: 0; font-size: 1rem; }
+.report-total-revenue-icon { display: grid; width: 42px; height: 42px; flex: none; place-items: center; border-radius: 12px; background: #f3e7d4; color: var(--harbor); }
+.report-total-revenue-value { color: var(--harbor); font-family: var(--font-head); font-size: clamp(2.2rem, 3.2vw, 3rem); line-height: 1.1; overflow-wrap: anywhere; }
+.report-total-revenue-caption { color: var(--muted); font-size: .82rem; }
+.reports-summary-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(96px, 1fr)); align-content: stretch; margin-bottom: 0; }
 .report-chart-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .report-chart-heading h2 { margin-bottom: 0; }
 .report-chart-scroll { overflow: hidden; padding: 20px 2px 4px; }
@@ -389,9 +397,8 @@ tr.inactive td { color: var(--muted); }
 .report-line-grid { stroke: #e8ddcc; stroke-width: 1; }
 .report-line-axis-label { fill: var(--muted); font-family: var(--font-body); font-size: 11px; }
 .report-line-path { fill: none; stroke: var(--coral); stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; pointer-events: none; }
-.report-line-dot { fill: var(--panel); stroke: var(--coral); stroke-width: 2; }
-.report-line-hit { fill: transparent; cursor: crosshair; pointer-events: all; }
-.report-line-hit:focus { outline: none; }
+.report-line-dot { fill: var(--panel); stroke: var(--coral); stroke-width: 2; cursor: crosshair; }
+.report-line-dot:focus { outline: none; stroke-width: 3; }
 .report-line-guide { stroke: var(--coral); stroke-dasharray: 4 4; stroke-width: 1; opacity: .55; }
 .report-line-tooltip-box { fill: var(--harbor); filter: drop-shadow(0 3px 6px rgb(44 29 22 / 18%)); }
 .report-line-tooltip-date { fill: var(--salt); font-family: var(--font-body); font-size: 11px; }
@@ -681,6 +688,7 @@ tbody tr:hover { background: #fcf8f0; }
   .menu-btn { top: 10px; left: 12px; width: 42px; height: 42px; border: 1px solid rgb(255 255 255 / 15%); border-radius: 12px; background: var(--harbor); box-shadow: var(--shadow-sm); }
   .page-head { align-items: flex-start; }
   .grid-2, .order-layout { grid-template-columns: minmax(0, 1fr); }
+  .reports-summary-layout { grid-template-columns: minmax(0, 1fr); }
   .cart { position: static; }
   .login { grid-template-columns: 1fr; }
   .login-art { min-height: 35vh; padding: 34px; }
@@ -961,5 +969,56 @@ tbody tr:hover { background: #fcf8f0; }
   .login-logo { max-height: none; }
   .login-form { gap: 8px; padding-top: 12px; padding-bottom: 12px; }
   .login-form-heading h2 { font-size: 1.6rem; }
+}
+
+@page report {
+  size: landscape;
+  margin: 8mm;
+}
+
+@media print {
+  .reports-page {
+    page: report;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: min-content;
+    align-content: start;
+    gap: 3mm;
+  }
+  .reports-page > .page-head,
+  .reports-page > .alert,
+  .reports-page > .reports-summary-layout,
+  .reports-page > .report-daily-panel { grid-column: 1 / -1; }
+  .reports-page .reports-sales-grid,
+  .reports-page .reports-detail-grid { display: contents; }
+  .reports-page .panel { margin: 0; padding: 3mm; border-radius: 4px; box-shadow: none; }
+  .reports-page .page-head { margin: 0; }
+  .reports-page .reports-summary-layout { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 3mm; min-height: 28mm; margin: 0; }
+  .reports-page .report-total-revenue { min-height: 28mm; gap: 1mm; padding: 3mm; }
+  .reports-page .report-total-revenue-icon { width: 8mm; height: 8mm; border-radius: 2mm; }
+  .reports-page .report-total-revenue-caption { font-size: 7pt; }
+  .reports-page .report-total-revenue-value { font-size: 19pt; }
+  .reports-page .reports-summary-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 2mm; margin: 0; }
+  .reports-page .stat { padding: 2mm 3mm; }
+  .reports-page .report-chart-heading h2 { font-size: 11pt; }
+  .reports-page .report-line-wrap { padding-top: 1mm; }
+  .reports-page .report-line-chart { height: 34mm; }
+  .reports-page .report-chart-scroll { padding: 1mm 0 0; }
+  .reports-page .report-chart { height: 28mm; }
+  .reports-page .report-chart-column { grid-template-rows: 15px minmax(0, 1fr) 18px; }
+  .reports-page .report-chart-value,
+  .reports-page .report-chart-label { font-size: 6.5pt; }
+  .reports-page .category-chart-layout { grid-template-columns: 30mm minmax(0, 1fr); justify-items: stretch; gap: 2mm; padding-top: 1mm; }
+  .reports-page .category-donut { width: 28mm; }
+  .reports-page .category-legend { width: 100%; gap: 1mm; }
+  .reports-page .category-legend li { font-size: 7pt; }
+  .reports-page .category-legend li > strong,
+  .reports-page .category-legend li > .muted { font-size: 6.5pt; }
+  .reports-page .best-selling-list { gap: 1.5mm; padding-top: 1mm; }
+  .reports-page .best-selling-label { margin-bottom: 1mm; font-size: 7pt; }
+  .reports-page .best-selling-label span { font-size: 6.5pt; }
+  .reports-page .best-selling-list .hbar { height: 1.5mm; }
+  .reports-page .report-line-tooltip { display: none; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 

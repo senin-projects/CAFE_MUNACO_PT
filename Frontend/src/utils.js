@@ -1,9 +1,16 @@
 import { UNITS } from '../../Shared/units.js'
 
 const numberFormatter = new Intl.NumberFormat('en-PH', { maximumFractionDigits: 6 })
+const currencyNumberFormatter = new Intl.NumberFormat('en-PH', {
+  maximumFractionDigits: 2,
+})
+const currencyAxisNumberFormatter = new Intl.NumberFormat('en-PH', {
+  maximumFractionDigits: 0,
+})
 
 export const formatNumber = (value) => numberFormatter.format(Number(value ?? 0))
-export const formatCurrency = (value) => `₱${formatNumber(value)}`
+export const formatCurrency = (value) => `₱${currencyNumberFormatter.format(Number(value ?? 0))}`
+export const formatCurrencyAxis = (value) => `₱${currencyAxisNumberFormatter.format(Number(value ?? 0))}`
 
 // Backward-compatible names for modules that already use these helpers.
 export const peso = formatCurrency

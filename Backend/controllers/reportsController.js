@@ -24,6 +24,11 @@ router.get(
     res.json({
       days,
       totals,
+      overview: (await rows(
+        `SELECT COALESCE(SUM(CASE WHEN DATE(served_at) = CURDATE() THEN total ELSE 0 END), 0) AS sales_today,
+                COALESCE(SUM(total), 0) AS total_revenue
+         FROM orders WHERE status = 'served'`
+      ))[0],
       daily: await rows(
         `SELECT DATE_FORMAT(served_at, '%Y-%m-%d') AS day, COUNT(*) AS orders, SUM(total) AS sales
          FROM orders WHERE status = 'served' AND served_at >= NOW() - INTERVAL ? DAY

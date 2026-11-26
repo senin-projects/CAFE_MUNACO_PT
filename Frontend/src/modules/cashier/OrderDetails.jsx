@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../../services/api.js'
 import { useAuth } from '../../auth.jsx'
 import { useFetch } from '../../hooks.js'
@@ -16,10 +16,18 @@ const STEPS = [
 ]
 const SHORT_STEP_LABEL = { created_at: 'Created', sent_at: 'Sent', preparing_at: 'Prep', ready_at: 'Ready', served_at: 'Served', cancelled: 'Cancel' }
 
+function printReceipt() {
+  const clearReceiptMode = () => document.body.classList.remove('receipt-printing')
+  document.body.classList.add('receipt-printing')
+  window.addEventListener('afterprint', clearReceiptMode, { once: true })
+  window.print()
+}
+
 export default function OrderDetails() {
   const { id } = useParams()
   const { user } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
   const { data: o, error, loading, reload } = useFetch(`/orders/${id}`, { poll: 15000 })
   const [actionError, setActionError] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
@@ -30,6 +38,27 @@ export default function OrderDetails() {
   const [paymentResolution, setPaymentResolution] = useState('')
   const [inventoryResolution, setInventoryResolution] = useState('')
   const showPrices = user.role !== 'kitchen'
+  const autoPrintStarted = useRef(false)
+
+  useEffect(() => {
+    if (location.state?.autoPrintReceipt && o && !loading && user.role === 'cashier' && !autoPrintStarted.current) {
+      autoPrintStarted.current = true
+      setReceiptOpen(true)
+      navigate(location.pathname, {
+        replace: true,
+        state: { ...location.state, autoPrintReceipt: false },
+      })
+    }
+  }, [location, loading, navigate, o, user.role])
+
+  useEffect(() => {
+    if (!receiptOpen || !autoPrintStarted.current) return undefined
+    const timer = window.setTimeout(() => {
+      printReceipt()
+      autoPrintStarted.current = false
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [receiptOpen])
 
   async function run(path, options, after) {
     if (actionBusy) return
@@ -132,7 +161,17 @@ export default function OrderDetails() {
             Cancel order
           </button>
         )}
-        {user.role === 'cashier' && <button className="btn" onClick={() => setReceiptOpen(true)}>Print receipt</button>}
+        {user.role === 'cashier' && (
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Print receipt"
+            title="Print receipt"
+            onClick={() => setReceiptOpen(true)}
+          >
+            <Icon name="printer" size={18} />
+          </button>
+        )}
         {user.role !== 'kitchen' && (
           <Link className="icon-button" to="/orders" aria-label="Back to Orders" title="Back to Orders">
             <Icon name="arrowLeft" size={18} />
@@ -302,8 +341,7 @@ export default function OrderDetails() {
             <p className="receipt-thanks">Thank you for visiting Cafe Munaco.</p>
           </div>
           <footer className="receipt-actions">
-            <button type="button" className="btn" onClick={() => window.print()}>Print receipt</button>
-            <Link className="btn btn-primary" to="/orders/new" onClick={() => setReceiptOpen(false)}>New sale</Link>
+            <button type="button" className="btn" onClick={printReceipt}>Print receipt</button>
           </footer>
         </Modal>
       )}
