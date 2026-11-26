@@ -12,7 +12,7 @@ export async function findMenuItemsByIds(ids, db = pool) {
   return (await db.query(
     `SELECT m.id, m.name, m.price, m.is_available,
             EXISTS(SELECT 1 FROM menu_item_ingredients mii WHERE mii.menu_item_id = m.id) AS has_recipe
-     FROM menu_items m WHERE m.id IN (?)`,
+    FROM menu_items m WHERE m.id IN (?) ORDER BY m.id FOR UPDATE`,
     [ids],
   ))[0];
 }

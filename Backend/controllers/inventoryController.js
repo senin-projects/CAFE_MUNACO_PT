@@ -4,6 +4,7 @@ import { pool } from '../config/db.js';
 import { requireRole } from '../middleware/auth.js';
 import { wrap, httpError, isBlank } from '../utils/http.js';
 import { logActivity } from '../services/activityService.js';
+import { makeStockedMenuItemsAvailable } from '../services/orderInventoryService.js';
 
 const router = Router();
 
@@ -262,6 +263,7 @@ async function moveStock(req, res, type) {
     }
     const balance = num(Number(item.quantity) + (type === 'in' ? quantity : -quantity), 'Quantity');
     await conn.query('UPDATE inventory_items SET quantity = ? WHERE id = ?', [balance, item.id]);
+    if (type === 'in') await makeStockedMenuItemsAvailable([item.id], conn);
     await conn.query(
       'INSERT INTO stock_movements (item_id, movement_type, quantity, balance_after, reason, supplier, note, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [

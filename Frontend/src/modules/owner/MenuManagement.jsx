@@ -54,7 +54,7 @@ export default function MenuManagement() {
     const query = search.trim().toLowerCase()
     const matchesSearch = !query || `${item.name} ${item.category}`.toLowerCase().includes(query)
     const matchesCategory = !categoryFilter || item.category === categoryFilter
-    const availableForOrders = Boolean(item.is_available) && Boolean(item.has_recipe)
+    const availableForOrders = Boolean(item.is_available) && Boolean(item.has_recipe) && Boolean(item.inventory_available)
     const matchesAvailability = availabilityFilter === '' || String(Number(availableForOrders)) === availabilityFilter
     return matchesSearch && matchesCategory && matchesAvailability
   })
@@ -206,7 +206,7 @@ export default function MenuManagement() {
             <thead><tr><th>Item</th><th>Category</th><th className="num">Price</th><th>Availability</th><th aria-label="Actions"></th></tr></thead>
             <tbody>
               {filteredItems.map((item) => (
-                <tr key={item.id} className={item.is_available && item.has_recipe ? '' : 'inactive'}>
+                <tr key={item.id} className={item.is_available && item.has_recipe && item.inventory_available ? '' : 'inactive'}>
                   <td className="menu-item-cell-wrap">
                     <span className="menu-item-cell">
                       <span className="menu-category-icon"><Icon name={categoryIcon(item.category)} size={19} /></span>
@@ -216,8 +216,12 @@ export default function MenuManagement() {
                   <td className="menu-category-label">{item.category}</td>
                   <td className="num">{peso(item.price)}</td>
                   <td>
-                    <span className={`badge ${item.is_available && item.has_recipe ? 'stock-ok' : 'badge-cancelled'}`}>
-                      {!item.has_recipe ? 'Recipe required' : item.is_available ? 'Available' : 'Unavailable'}
+                    <span className={`badge ${item.is_available && item.has_recipe && item.inventory_available ? 'stock-ok' : 'badge-cancelled'}`}>
+                      {!item.has_recipe
+                        ? 'Recipe required'
+                        : !item.inventory_available
+                          ? item.has_out_of_stock_ingredient ? 'Ingredient out of stock' : 'Insufficient ingredient stock'
+                          : item.is_available ? 'Available' : 'Unavailable'}
                     </span>
                   </td>
                   <td className="menu-row-actions">

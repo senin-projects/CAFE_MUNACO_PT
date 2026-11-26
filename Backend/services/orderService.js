@@ -1,5 +1,7 @@
 import { httpError, isBlank } from '../utils/http.js';
 import { findMenuItemsByIds } from '../models/orderModel.js';
+import { assertMenuOrderStock } from './orderInventoryService.js';
+import { pool } from '../config/db.js';
 
 export const ORDER_STATUSES = ['pending', 'sent', 'preparing', 'ready', 'served', 'cancelled'];
 export const ORDER_TYPES = ['dine_in', 'takeout', 'reservation', 'buffet', 'birthday', 'special_event', 'advance_order'];
@@ -29,7 +31,7 @@ export function stripOrderPrices(order, role) {
 }
 
 // Reads the form, checks it, and rebuilds item lines using the real menu prices.
-export async function validateOrder(body, preservedUnavailable = new Map()) {
+export async function validateOrder(body, preservedUnavailable = new Map(), db = pool) {
   const customer_name = String(body.customer_name || '').trim();
   if (!customer_name) throw httpError(400, 'Enter the customer name.');
 
@@ -60,7 +62,7 @@ export async function validateOrder(body, preservedUnavailable = new Map()) {
   if (!lines.length) throw httpError(400, 'Add at least one item to the order.');
 
   const ids = lines.map((l) => Number(l.menu_item_id));
-  const menu = await findMenuItemsByIds(ids);
+  const menu = await findMenuItemsByIds(ids, db);
   const menuById = new Map(menu.map((m) => [m.id, m]));
 
   const items = lines.map((l) => {
@@ -95,6 +97,7 @@ export async function validateOrder(body, preservedUnavailable = new Map()) {
       notes,
     };
   });
+  await assertMenuOrderStock(items, db);
 
   return {
     header: {

@@ -15,7 +15,6 @@ router.post(
   '/',
   requireRole('cashier'),
   wrap(async (req, res) => {
-    const { header, items, total } = await validateOrder(req.body || {});
     const sendNow = req.body?.send === true;
     const paymentMethod = String(req.body?.payment_method || '');
     if (sendNow && !['cash', 'card', 'e_wallet'].includes(paymentMethod)) {
@@ -24,6 +23,7 @@ router.post(
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
+      const { header, items, total } = await validateOrder(req.body || {}, new Map(), conn);
       const [result] = await conn.query('INSERT INTO orders SET ?', [
         {
           ...header,
@@ -76,7 +76,7 @@ router.put(
         if (i.menu_item_id !== null) preservedUnavailable.set(i.menu_item_id, i);
         else preservedUnavailable.set(`row:${i.id}`, i);
       });
-      const { header, items, total } = await validateOrder(req.body || {}, preservedUnavailable);
+      const { header, items, total } = await validateOrder(req.body || {}, preservedUnavailable, conn);
       await conn.query('UPDATE orders SET ?, total = ?, status = ?, sent_at = ? WHERE id = ?', [
         header,
         total,

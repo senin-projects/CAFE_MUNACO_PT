@@ -6,6 +6,7 @@ WARNING: importing again wipes all tables. Do it once per computer.
 For an existing database, also apply the unapplied migrations in `Database/migrations/` in date order in phpMyAdmin, including `2026-11-24_create_menu_item_ingredients.sql`, `2026-11-25_add_recipe_unit_conversions.sql`, and `2026-11-25_add_order_recipe_snapshots.sql`.
 
 Orders snapshot their ingredient recipes when sent to the kitchen. Inventory is deducted when preparation starts. If an owner cancels an order after preparation starts, they must record whether ingredients were consumed/wasted or fully restocked.
+Cashier menu availability is calculated from each product's recipe and current ingredient stock. Products remain visible but cannot be added when stock is insufficient; availability refreshes automatically, and stock is checked again when orders are saved, sent to the kitchen, and prepared.
 The fresh-import seed includes illustrative demo recipes so sample kitchen orders can run. Replace their quantities with the cafe's actual recipes in Menu Management before production use. Menu items without recipes are marked as requiring a recipe and cannot be ordered. Seed changes affect fresh imports only; existing databases retain their current data.
 
 ## 2. Backend

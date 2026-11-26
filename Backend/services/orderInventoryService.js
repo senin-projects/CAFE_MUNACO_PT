@@ -4,6 +4,110 @@ import { httpError } from '../utils/http.js';
 
 const MAX_STOCK_QUANTITY = 9_999_999_999.999999;
 
+async function loadMenuRecipeStock(menuItemIds, db, lock = false) {
+  const ids = [...new Set(menuItemIds.map(Number))];
+  if (!ids.length) return [];
+  const [rows] = await db.query(
+    `SELECT mii.menu_item_id, mii.ingredient_id, i.name AS ingredient_name,
+            mii.quantity_required, mii.unit_of_measurement,
+            i.unit AS inventory_unit, i.quantity AS current_stock
+     FROM menu_item_ingredients mii
+     JOIN inventory_items i ON i.id = mii.ingredient_id
+     WHERE mii.menu_item_id IN (?)
+     ORDER BY i.id, mii.menu_item_id
+     ${lock ? 'FOR UPDATE' : ''}`,
+    [ids],
+  );
+  return rows;
+}
+
+export async function getMenuInventoryAvailability(menuItems, db) {
+  const availability = new Map(menuItems.map((item) => [
+    Number(item.id),
+    {
+      inventory_available: Boolean(item.has_recipe),
+      unavailable_ingredients: [],
+      has_out_of_stock_ingredient: false,
+    },
+  ]));
+  const recipeRows = await loadMenuRecipeStock(menuItems.map((item) => item.id), db);
+
+  for (const row of recipeRows) {
+    const convertedRequired = convertUnitQuantity(
+      Number(row.quantity_required),
+      row.unit_of_measurement,
+      row.inventory_unit,
+    );
+    const required = roundStockQuantity(convertedRequired);
+    if (convertedRequired === null || !Number.isFinite(required) || required <= 0) {
+      throw httpError(409, `The recipe unit for ${row.ingredient_name} is incompatible with its inventory unit.`);
+    }
+
+    const itemAvailability = availability.get(Number(row.menu_item_id));
+    if (Number(row.current_stock) < required) {
+      itemAvailability.inventory_available = false;
+      itemAvailability.unavailable_ingredients.push(row.ingredient_name);
+      if (Number(row.current_stock) <= 0) itemAvailability.has_out_of_stock_ingredient = true;
+    }
+  }
+
+  return availability;
+}
+
+export async function makeStockedMenuItemsAvailable(ingredientIds, db) {
+  const ids = [...new Set(ingredientIds.map(Number))];
+  if (!ids.length) return;
+
+  const [menuItems] = await db.query(
+    `SELECT DISTINCT m.id, 1 AS has_recipe
+     FROM menu_items m
+     JOIN menu_item_ingredients mii ON mii.menu_item_id = m.id
+     WHERE mii.ingredient_id IN (?)
+     ORDER BY m.id`,
+    [ids],
+  );
+  const availability = await getMenuInventoryAvailability(menuItems, db);
+  const availableIds = menuItems
+    .filter((item) => availability.get(Number(item.id))?.inventory_available)
+    .map((item) => item.id);
+
+  if (availableIds.length) {
+    await db.query('UPDATE menu_items SET is_available = 1 WHERE id IN (?)', [availableIds]);
+  }
+}
+
+export async function assertMenuOrderStock(orderItems, db) {
+  const items = orderItems.filter((item) => item.menu_item_id !== null && item.menu_item_id !== undefined);
+  if (!items.length) return;
+
+  const recipeRows = await loadMenuRecipeStock(items.map((item) => item.menu_item_id), db, true);
+  const validationItems = items.map((item, index) => ({
+    id: index,
+    item_name: item.item_name,
+  }));
+  const validationRows = recipeRows.flatMap((row) =>
+    items.flatMap((item, index) => Number(item.menu_item_id) === Number(row.menu_item_id)
+      ? [{
+          ...row,
+          order_item_id: index,
+          order_quantity: item.quantity,
+        }]
+      : [])
+  );
+  const requirements = buildIngredientRequirements(validationItems, validationRows);
+  const stockById = new Map(recipeRows.map((row) => [Number(row.ingredient_id), row]));
+
+  for (const requirement of requirements) {
+    const stock = stockById.get(requirement.ingredient_id);
+    if (!stock || Number(stock.current_stock) < requirement.quantity_required) {
+      throw httpError(
+        409,
+        `Not enough ${requirement.ingredient_name} to complete this order. Required: ${requirement.quantity_required} ${requirement.inventory_unit}; available: ${stock?.current_stock ?? 0} ${requirement.inventory_unit}.`,
+      );
+    }
+  }
+}
+
 export function buildIngredientRequirements(orderItems, recipeRows) {
   const rowsByOrderItem = new Map();
   for (const row of recipeRows) {
@@ -65,7 +169,7 @@ export function buildIngredientRequirements(orderItems, recipeRows) {
 
 export async function snapshotOrderRecipe(conn, orderId) {
   const [orderItems] = await conn.query(
-    'SELECT id, menu_item_id, item_name FROM order_items WHERE order_id = ? ORDER BY id FOR UPDATE',
+    'SELECT id, menu_item_id, item_name, quantity FROM order_items WHERE order_id = ? ORDER BY id FOR UPDATE',
     [orderId],
   );
   if (!orderItems.length) throw httpError(409, 'This order has no items to send to the kitchen.');
@@ -119,12 +223,25 @@ export async function snapshotOrderRecipe(conn, orderId) {
       validationRows.push({
         ...row,
         order_item_id: orderItem.id,
-        order_quantity: 1,
+        order_quantity: orderItem.quantity,
       });
     }
   }
 
-  buildIngredientRequirements(orderItems.map((item) => ({ ...item, id: Number(item.id) })), validationRows);
+  const requirements = buildIngredientRequirements(
+    orderItems.map((item) => ({ ...item, id: Number(item.id) })),
+    validationRows,
+  );
+  const stockById = await lockInventory(conn, orderId, requirements);
+  for (const requirement of requirements) {
+    const stock = stockById.get(requirement.ingredient_id);
+    if (Number(stock.quantity) < requirement.quantity_required) {
+      throw httpError(
+        409,
+        `Not enough ${stock.name} to send this order. Required: ${requirement.quantity_required} ${stock.unit}; available: ${stock.quantity} ${stock.unit}.`,
+      );
+    }
+  }
   await conn.query(
     `INSERT INTO order_item_ingredients
        (order_item_id, ingredient_id, ingredient_name, quantity_required, unit_of_measurement, inventory_unit)
@@ -228,6 +345,7 @@ export async function restockOrderIngredients(conn, order, userId) {
     );
   }
 
+  await makeStockedMenuItemsAvailable(requirements.map((item) => item.ingredient_id), conn);
   await conn.query('UPDATE orders SET ingredients_deducted_at = NULL WHERE id = ?', [order.id]);
   return true;
 }

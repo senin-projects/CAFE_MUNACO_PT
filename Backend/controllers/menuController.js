@@ -4,6 +4,7 @@ import { pool } from '../config/db.js';
 import { requireRole } from '../middleware/auth.js';
 import { wrap, httpError } from '../utils/http.js';
 import { logActivity } from '../services/activityService.js';
+import { getMenuInventoryAvailability } from '../services/orderInventoryService.js';
 import { areUnitsCompatible } from '../../Shared/units.js';
 
 const router = Router();
@@ -81,7 +82,8 @@ router.get(
               EXISTS(SELECT 1 FROM menu_item_ingredients mii WHERE mii.menu_item_id = m.id) AS has_recipe
        FROM menu_items m ORDER BY m.category, m.name`
     );
-    res.json(rows);
+    const availability = await getMenuInventoryAvailability(rows, pool);
+    res.json(rows.map((item) => ({ ...item, ...availability.get(Number(item.id)) })));
   })
 );
 

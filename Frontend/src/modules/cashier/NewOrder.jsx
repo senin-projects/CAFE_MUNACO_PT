@@ -12,7 +12,7 @@ const BLANK = { customer_name: '', order_type: 'dine_in', table_no: '', guests: 
 export default function NewOrder() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { data: menu, error: menuError } = useFetch('/menu')
+  const { data: menu, error: menuError } = useFetch('/menu', { poll: 10000 })
   const [form, setForm] = useState(BLANK)
   const [cart, setCart] = useState({}) // menu item id -> { qty, notes }
   const [savedItems, setSavedItems] = useState([])
@@ -62,17 +62,25 @@ export default function NewOrder() {
     const item = (menu || []).find((m) => m.id === Number(key))
     if (!item) return null
     const saved = savedItems.find((i) => i.menu_item_id === item.id)
-    return (!item.is_available || !item.has_recipe) && saved
-      ? { ...item, name: saved.item_name, price: saved.unit_price, retainedUnavailable: true }
-      : item
+    const canOrder = Boolean(item.is_available) && Boolean(item.has_recipe) && Boolean(item.inventory_available)
+    return canOrder ? item : {
+      ...item,
+      ...(saved ? { name: saved.item_name, price: saved.unit_price } : {}),
+      retainedUnavailable: true,
+      stockUnavailable: Boolean(item.has_recipe) && !Boolean(item.inventory_available),
+    }
   }).filter(Boolean)
   const total = lines.reduce((sum, m) => sum + m.price * cart[m.id].qty, 0)
   const cashAmount = Number(cashReceived) || 0
   const changeDue = Math.max(0, cashAmount - total)
 
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.value })
-  const add = (m) => setCart({ ...cart, [m.id]: { qty: (cart[m.id]?.qty || 0) + 1, notes: cart[m.id]?.notes || '' } })
+  const add = (m) => {
+    if (!m.is_available || !m.has_recipe || !m.inventory_available) return
+    setCart({ ...cart, [m.id]: { qty: (cart[m.id]?.qty || 0) + 1, notes: cart[m.id]?.notes || '' } })
+  }
   const change = (m, delta) => {
+    if (delta > 0 && (!m.is_available || !m.has_recipe || !m.inventory_available)) return
     const next = { ...cart }
     const qty = (next[m.id]?.qty || 0) + delta
     if (qty <= 0) delete next[m.id]
@@ -89,6 +97,10 @@ export default function NewOrder() {
     setError('')
     if (payAndSend && !lines.length) {
       setError('Add at least one item to the order.')
+      return
+    }
+    if (lines.some((item) => item.stockUnavailable)) {
+      setError('Unavailable – ingredient stock is insufficient. Remove unavailable products before saving or placing the order.')
       return
     }
     if (payAndSend && paymentMethod === 'cash' && cashAmount < total) {
@@ -174,8 +186,14 @@ export default function NewOrder() {
             </div>
             <div className="menu-grid">
               {shown.map((m) => {
-                const canOrder = Boolean(m.is_available) && Boolean(m.has_recipe)
-                const unavailableMessage = m.has_recipe ? 'Unavailable' : 'Recipe required'
+                const canOrder = Boolean(m.is_available) && Boolean(m.has_recipe) && Boolean(m.inventory_available)
+                const unavailableMessage = !m.has_recipe
+                  ? 'Recipe required'
+                  : !m.inventory_available
+                    ? m.has_out_of_stock_ingredient
+                      ? 'Unavailable – Ingredient out of stock.'
+                      : 'Unavailable – Insufficient ingredient stock.'
+                    : 'Unavailable'
                 return (
                   <button
                     key={m.id}
@@ -202,7 +220,14 @@ export default function NewOrder() {
               {lines.map((m) => (
                 <li key={m.id}>
                   <div className="cart-row">
-                    <span className="cart-item-name">{m.name}{(m.retainedUnavailable || m.archived) && <span className="muted"> (unavailable)</span>}</span>
+                    <span className="cart-item-name">
+                      {m.name}{(m.retainedUnavailable || m.archived) && <span className="muted"> (unavailable)</span>}
+                      {m.stockUnavailable && (
+                        <span className="menu-unavailable">
+                          {m.has_out_of_stock_ingredient ? 'Unavailable – Ingredient out of stock.' : 'Unavailable – Insufficient ingredient stock.'}
+                        </span>
+                      )}
+                    </span>
                     <div className="cart-quantity">
                     {!m.retainedUnavailable && !m.archived && <button className="qty-btn" onClick={() => change(m, -1)} aria-label={`Remove one ${m.name}`}>−</button>}
                     <span>{qty(cart[m.id].qty)}</span>
@@ -252,10 +277,10 @@ export default function NewOrder() {
               </>
             )}
           </section>
-          <button className="btn btn-primary wide charge-btn" disabled={busy || !lines.length || (paymentMethod === 'cash' && cashAmount < total)} onClick={() => submit(true)}>
+          <button className="btn btn-primary wide charge-btn" disabled={busy || !lines.length || lines.some((item) => item.stockUnavailable) || (paymentMethod === 'cash' && cashAmount < total)} onClick={() => submit(true)}>
             {busy ? 'Updating...' : <>Place Order {peso(total)} <span aria-hidden="true">↗</span></>}
           </button>
-          <button className="btn wide" disabled={busy} onClick={() => submit(false)}>{busy ? 'Updating...' : 'Save draft'}</button>
+          <button className="btn wide" disabled={busy || lines.some((item) => item.stockUnavailable)} onClick={() => submit(false)}>{busy ? 'Updating...' : 'Save draft'}</button>
         </aside>
       </div>
     </>
