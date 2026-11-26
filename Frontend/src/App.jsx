@@ -14,6 +14,7 @@ import InventoryList from './modules/inventory/InventoryList.jsx'
 import ItemForm from './modules/inventory/ItemForm.jsx'
 import StockForm from './modules/inventory/StockForm.jsx'
 import StockHistory from './modules/inventory/StockHistory.jsx'
+import InventoryModule from './modules/inventory/InventoryModule.jsx'
 import StockManagement from './modules/inventory/StockManagement.jsx'
 import Reports from './modules/owner/Reports.jsx'
 import Users from './modules/owner/Users.jsx'
@@ -63,17 +64,29 @@ export default function App() {
         <Route path="/kitchen/history" element={<Only roles={['kitchen']}><KitchenQueue status="served" title="Order History" empty="No completed orders yet." history /></Only>} />
 
         {/* Inventory */}
-        <Route path="/inventory" element={<Only roles={['inventory']}><InventoryList /></Only>} />
+        <Route path="/inventory" element={
+          <Only roles={['inventory', 'owner']}>
+            {user.role === 'owner' ? <InventoryModule /> : <InventoryList />}
+          </Only>
+        } />
         <Route path="/inventory/new" element={<Only roles={['inventory']}><ItemForm /></Only>} />
         <Route path="/inventory/:id/edit" element={<Only roles={['inventory']}><ItemForm /></Only>} />
         <Route path="/inventory/stock-in" element={<Only roles={['inventory']}><StockForm type="in" /></Only>} />
         <Route path="/inventory/stock-out" element={<Only roles={['inventory']}><StockForm type="out" /></Only>} />
         <Route path="/stock-management" element={<Only roles={['inventory']}><StockManagement /></Only>} />
-        <Route path="/inventory/low" element={<Navigate to="/inventory?low=1" replace />} />
-        <Route path="/stock-history" element={<Only roles={['inventory', 'owner']}><StockHistory /></Only>} />
+        <Route path="/inventory/low" element={
+          <Only roles={['inventory', 'owner']}>
+            <Navigate to="/inventory?tab=overview&low=1" replace />
+          </Only>
+        } />
+        <Route path="/stock-history" element={
+          <Only roles={['inventory', 'owner']}>
+            {user.role === 'owner' ? <Navigate to="/inventory?tab=history" replace /> : <StockHistory />}
+          </Only>
+        } />
 
         {/* Owner */}
-        <Route path="/inventory-overview" element={<Only roles={['owner']}><InventoryList readOnly /></Only>} />
+        <Route path="/inventory-overview" element={<Only roles={['owner']}><Navigate to="/inventory?tab=overview" replace /></Only>} />
         <Route path="/reports" element={<Navigate to="/dashboard" replace />} />
         <Route path="/users" element={<Only roles={['owner']}><Users /></Only>} />
         <Route path="/menu-management" element={<Only roles={['owner', 'kitchen']}><MenuManagement /></Only>} />

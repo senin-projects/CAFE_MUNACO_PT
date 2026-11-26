@@ -107,6 +107,7 @@ input.search { width: 100%; }
 .stock-tabs button { border: 0; border-bottom: 3px solid transparent; padding: 10px 16px; background: transparent; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; }
 .stock-tabs button:hover { color: var(--ink); background: #f2e8dc; }
 .stock-tabs button.active { border-bottom-color: var(--calamansi); color: var(--harbor); }
+.inventory-module-tabs { margin-top: -4px; }
 
 .alert { padding: 10px 14px; border-radius: 7px; margin-bottom: 12px; font-size: 0.92rem; }
 .alert-error { background: #fbeceb; color: #7f1c14; border: 1px solid #efc2be; }
@@ -355,14 +356,7 @@ tr.inactive td { color: var(--muted); }
   .tickets > .ticket { height: 430px; }
   .tickets > .ticket.ticket-expanded { height: auto; }
 }
-.kitchen-status-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
-.btn.kitchen-status-button { border-width: 1px; box-shadow: none; }
-.btn.kitchen-status-incoming { background: #e8d9cb; border-color: #d0b59b; color: #68452f; }
-.btn.kitchen-status-incoming[aria-pressed='true'] { background: #68452f; border-color: #68452f; color: #fff; }
-.btn.kitchen-status-preparing { background: #fbe9c7; border-color: #e8c879; color: #7d4a05; }
-.btn.kitchen-status-preparing[aria-pressed='true'] { background: #8a580e; border-color: #8a580e; color: #fff; }
-.btn.kitchen-status-ready { background: #d6efdf; border-color: #a9d3b7; color: #17583a; }
-.btn.kitchen-status-ready[aria-pressed='true'] { background: #236846; border-color: #236846; color: #fff; }
+.kitchen-status-tabs { margin-bottom: 18px; }
 
 /* ---------- reports ---------- */
 .bars { display: flex; align-items: flex-end; gap: 10px; height: 230px; padding-top: 8px; overflow-x: auto; }
@@ -928,6 +922,8 @@ tbody tr:hover { background: #fcf8f0; }
 .login-form input:focus { border-color: #b8885f; outline: none; box-shadow: 0 0 0 3px rgb(184 136 95 / 16%); }
 .login-password-field { position: relative; display: block; }
 .login-password-field input { padding-right: 48px; }
+.login-password-field input::-ms-reveal,
+.login-password-field input::-ms-clear { display: none; }
 .login-password-toggle { position: absolute; top: 50%; right: 8px; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; transform: translateY(-50%); border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; }
 .login-password-toggle:hover { background: #f4ecdd; color: var(--harbor); }
 .login-password-toggle:focus-visible { outline: 2px solid #bd965a; outline-offset: 1px; }

@@ -9,7 +9,7 @@ import ActionMenu from '../../components/ActionMenu.jsx'
 import ItemForm from './ItemForm.jsx'
 
 // "Inventory List" for inventory staff, "Inventory Overview" (readOnly) for the owner
-export default function InventoryList({ readOnly }) {
+export default function InventoryList({ readOnly, embedded = false }) {
   const [params] = useSearchParams()
   const [q, setQ] = useState('')
   const [category, setCategory] = useState('')
@@ -71,19 +71,20 @@ export default function InventoryList({ readOnly }) {
                 {!readOnly && (
                   <td className="inventory-actions-cell" data-label="Actions">
                     <div className="inventory-row-actions">
-                      <Link className="inventory-stock-action" to={`/stock-management?tab=in&item=${i.id}`}>
-                        <Icon name="download" size={17} />
-                        <span>Stock In</span>
-                      </Link>
-                      <Link className="inventory-stock-action" to={`/stock-management?tab=out&item=${i.id}`}>
-                        <Icon name="upload" size={17} />
-                        <span>Stock Out</span>
-                      </Link>
-                      <details className="inventory-more">
-                        <summary className="icon-button" aria-label={`More actions for ${i.name}`} title="More actions">
-                          <Icon name="moreVertical" size={19} />
-                        </summary>
-                        <div className="inventory-action-menu">
+                      <ActionMenu
+                        label={`More actions for ${i.name}`}
+                        title="More actions"
+                        className="inventory-more"
+                        triggerClassName="icon-button"
+                        menuClassName="inventory-action-menu"
+                        trigger={<Icon name="moreVertical" size={19} />}
+                      >
+                          <Link className="inventory-action-option" to={`/stock-management?tab=in&item=${i.id}`}>
+                            <Icon name="download" size={16} /> Stock In
+                          </Link>
+                          <Link className="inventory-action-option" to={`/stock-management?tab=out&item=${i.id}`}>
+                            <Icon name="upload" size={16} /> Stock Out
+                          </Link>
                           <Link className="inventory-action-option" to={`/inventory/${i.id}/edit`}>
                             <Icon name="edit" size={16} /> Edit
                           </Link>
@@ -96,8 +97,7 @@ export default function InventoryList({ readOnly }) {
                             <Icon name="trash" size={16} />
                             {deletingId === i.id ? 'Deleting...' : 'Delete'}
                           </button>
-                        </div>
-                      </details>
+                      </ActionMenu>
                     </div>
                   </td>
                 )}
@@ -111,12 +111,14 @@ export default function InventoryList({ readOnly }) {
 
   return (
     <>
-      <PageHeader
-        title={readOnly ? 'Inventory Overview' : 'Inventory Management'}
-        subtitle={readOnly ? 'Current quantities and availability. View only.' : undefined}
-      >
-        {!readOnly && <button className="btn btn-primary" onClick={() => setShowAddItem(true)}>Add new item</button>}
-      </PageHeader>
+      {!embedded && (
+        <PageHeader
+          title={readOnly ? 'Inventory Overview' : 'Inventory Management'}
+          subtitle={readOnly ? 'Current quantities and availability. View only.' : undefined}
+        >
+          {!readOnly && <button className="btn btn-primary" onClick={() => setShowAddItem(true)}>Add new item</button>}
+        </PageHeader>
+      )}
 
       <div className="stats">
         <StatCard label="Total Item" value={data?.length ?? '–'} />

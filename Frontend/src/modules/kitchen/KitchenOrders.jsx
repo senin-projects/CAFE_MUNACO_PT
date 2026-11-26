@@ -2,9 +2,9 @@ import { useSearchParams } from 'react-router-dom'
 import KitchenQueue from './KitchenQueue.jsx'
 
 const ORDER_STAGES = [
-  { status: 'sent', label: 'Incoming', className: 'incoming' },
-  { status: 'preparing', label: 'Preparing', className: 'preparing' },
-  { status: 'ready', label: 'Ready', className: 'ready' },
+  { status: 'sent', label: 'Incoming' },
+  { status: 'preparing', label: 'Preparing' },
+  { status: 'ready', label: 'Ready' },
 ]
 
 export default function KitchenOrders() {
@@ -14,13 +14,14 @@ export default function KitchenOrders() {
   const activeStage = ORDER_STAGES.find((stage) => stage.status === activeStatus)
 
   const toolbar = (
-    <div className="kitchen-status-tabs" role="group" aria-label="Filter orders by status">
+    <div className="stock-tabs kitchen-status-tabs" role="tablist" aria-label="Filter orders by status">
       {ORDER_STAGES.map((stage) => (
         <button
           key={stage.status}
           type="button"
-          className={`btn kitchen-status-button kitchen-status-${stage.className}`}
-          aria-pressed={activeStatus === stage.status}
+          role="tab"
+          className={activeStatus === stage.status ? 'active' : ''}
+          aria-selected={activeStatus === stage.status}
           onClick={() => setSearchParams({ status: stage.status })}
         >
           {stage.label}

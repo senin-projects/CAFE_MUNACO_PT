@@ -85,7 +85,8 @@ export default function KitchenQueue({ status, title, empty, history, toolbar })
 
   return (
     <>
-      <PageHeader title={title}>{toolbar}</PageHeader>
+      <PageHeader title={title} />
+      {toolbar}
       <ErrorBox message={error || actionError} />
       {loading && !data ? <Loading /> : data?.length === 0 ? <Empty>{empty}</Empty> : history ? (
         <div className="table-wrap kitchen-history-wrap">
